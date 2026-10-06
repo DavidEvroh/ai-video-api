@@ -2,6 +2,7 @@ import os
 import replicate
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
 from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
@@ -26,6 +27,7 @@ app = FastAPI(
     version="2.0.0"
 )
 def get_api_key(api_key: str = Depends(api_key_header)):
+    app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
     if api_key == MASTER_API_KEY or os.getenv("ENVIRONMENT") == "marketplace":
         return api_key
     raise HTTPException(status_code=401, detail="Unauthorized: Invalid API Key")
