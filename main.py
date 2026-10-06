@@ -121,16 +121,24 @@ async def replicate_webhook(body: dict): # <-- Changed this line to expect a dic
 @app.post("/webhook")
 async def paystack_webhook(request: Request):
     try:
-        # 1. Capture the incoming raw payment announcement from Paystack
         data = await request.json()
-        # 2. Check if the transaction event is a total success
         if data.get("event") == "charge.success":
             customer_email = data["data"]["customer"]["email"]
-            amount_paid = data["data"]["amount"] / 100 # Convert kobo back to local Naira currency
-            print(f"💰 PAYMENT ALERT! {customer_email} successfully paid ₦{amount_paid}.")
-            # 3. Pull customer metadata fields or trigger video creation automatically here... 
-            return {"status": "success", "message": "Paystack webhook processed smoothly"}  
+            amount_paid = data["data"]["amount"] / 100 # Convert kobo back to Naira
+            print(f"💰 PAYMENT VERIFIED! {customer_email} successfully paid ₦{amount_paid}.")
+            # 🚀 DATABASE SYNCHRONIZATION: Update your user data table
+            user_record = supabase.table("profiles").select("credits").eq("email", customer_email).execute()
+            if user_record.data:
+                # Fixed to parse the array object properly
+                current_credits = user_record.data[0].get("credits", 0)
+                new_credits = current_credits + 10 # Award 10 video generation credits per payment
+                supabase.table("profiles").update({"credits": new_credits}).eq("email", customer_email).execute()
+                print(f"💳 CREDITS UPDATED! Added 10 credits to {customer_email}. Total: {new_credits}")
+            else:
+                print(f"⚠️ User record not found for {customer_email}. Creating new entry...")
+                supabase.table("profiles").insert({"email": customer_email, "credits": 10}).execute()
+            return {"status": "success", "message": "Credits successfully provisioned"}    
     except Exception as e:
-        print(f"❌ Paystack Webhook Error: {str(e)}")
+        print(f"❌ Paystack Webhook Database Error: {str(e)}")
         return {"status": "error", "message": str(e)}
     return {"status": "ignored"}
