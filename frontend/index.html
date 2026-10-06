@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generator Pro</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --accent-green: #10b981;
+            --text-color: #f8fafc;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--text-color); }
+        p { color: #94a3b8; margin-bottom: 30px; }
+        .prompt-box {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #fff;
+            padding: 12px;
+            box-sizing: border-box;
+            resize: none;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+        textarea:focus { border-color: var(--accent-color); outline: none; }
+        .pricing-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid var(--accent-color);
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        .price { font-size: 2rem; font-weight: bold; color: var(--accent-green); margin: 15px 0; }
+        .checkout-btn {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .checkout-btn:hover { background-color: #059669; transform: scale(1.02); }
+        .footer { margin-top: 40px; font-size: 0.85rem; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Video Generator Pro</h1>
+        <p>Create hyper-realistic, cinematic AI videos instantly using automated text prompts.</p>
+        <div class="prompt-box">
+            <label style="display:block; text-align:left; margin-bottom:8px; font-weight:600;">1. Enter Your Video Vision:</label>
+            <textarea id="videoPrompt" placeholder="Describe your video setup here (e.g., A cinematic drone shot of Lagos coastline at sunset, 8k resolution, ultra-detailed)..."></textarea>
+            <label style="display:block; text-align:left; margin-bottom:8px; font-weight:600;">2. Your Account Email:</label>
+            <input type="email" id="userEmail" placeholder="name@example.com" style="width:100%; padding:12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;">
+        </div>
+        <div class="pricing-card">
+            <h3>Premium Generation Bundle</h3>
+            <div class="price">₦1,000</div>
+            <p style="font-size:0.9rem; margin-bottom:20px;">Get 10 high-definition AI generation credits instantly. (Transaction fees added at checkout)</p>
+            <button class="checkout-btn" id="payButton">Unlock 10 Video Credits 🚀</button>
+        </div>
+        <div class="footer">
+            Powered by DavidEvroh AI Creations Engine & Secure Paystack Portal
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
