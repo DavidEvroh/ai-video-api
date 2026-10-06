@@ -117,8 +117,8 @@ async def replicate_webhook(body: dict): # <-- Changed this line to expect a dic
     except Exception as e:
         print(f"❌ Webhook parsing failure: {str(e)}")
         return {"status": "error", "message": str(e)}
-
-       @app.post("/webhook")
+        
+@app.post("/webhook")
 async def paystack_webhook(request: Request):
     try:
         # 1. Capture the incoming raw payment announcement from Paystack
@@ -128,9 +128,9 @@ async def paystack_webhook(request: Request):
             customer_email = data["data"]["customer"]["email"]
             amount_paid = data["data"]["amount"] / 100 # Convert kobo back to local Naira currency
             print(f"💰 PAYMENT ALERT! {customer_email} successfully paid ₦{amount_paid}.")
-            # 3. Pull customer metadata fields or trigger video creation automatically here...
-            return {"status": "success", "message": "Paystack webhook processed smoothly"}
+            # 3. Pull customer metadata fields or trigger video creation automatically here... 
+            return {"status": "success", "message": "Paystack webhook processed smoothly"}  
     except Exception as e:
         print(f"❌ Paystack Webhook Error: {str(e)}")
         return {"status": "error", "message": str(e)}
-    return {"status": "ignored"} 
+    return {"status": "ignored"}
