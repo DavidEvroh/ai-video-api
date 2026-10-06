@@ -1,5 +1,4 @@
 fastapi
 uvicorn
 httpx
-replicate
-python-dotenv
+replicatepython-dotenv
