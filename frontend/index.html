@@ -26,7 +26,7 @@
         }
         .container {
             width: 90%;
-            max-width: 600px;
+            max-width: 650px;
             text-align: center;
             padding: 20px;
         }
@@ -37,7 +37,7 @@
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         textarea {
             width: 100%;
@@ -53,25 +53,57 @@
             margin-bottom: 15px;
         }
         textarea:focus { border-color: var(--accent-color); outline: none; }
+        
+        /* 🎥 Showcase Gallery Layout Styles */
+        .gallery-title { text-align: left; font-size: 1.2rem; margin-top: 25px; margin-bottom: 12px; font-weight: 600; color: #cbd5e1; }
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .video-item {
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        video { width: 100%; height: 130px; display: block; object-fit: cover; }
+        .video-caption { font-size: 0.75rem; color: #94a3b8; padding: 8px; text-align: left; font-style: italic; }
+        /* 💵 Global Multi-Tier Pricing Layout Styles */
+        .pricing-section-title { text-align: left; font-size: 1.2rem; margin-bottom: 12px; font-weight: 600; color: #cbd5e1; }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
         .pricing-card {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 2px solid var(--accent-color);
-            padding: 25px;
+            border: 1px solid #334155;
+            padding: 18px;
             border-radius: 12px;
-            margin-top: 20px;
+            position: relative;
+            cursor: pointer;
+            text-align: center;
         }
-        .price { font-size: 2rem; font-weight: bold; color: var(--accent-green); margin: 15px 0; }
+        .pricing-card.featured { border: 2px solid var(--accent-color); }
+        .price { font-size: 1.6rem; font-weight: bold; color: var(--accent-green); margin: 10px 0; }
+        .plan-selector { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; }
+        .plan-selector input { cursor: pointer; width: 16px; height: 16px; }
         .checkout-btn {
             background-color: var(--accent-green);
             color: white;
             border: none;
-            padding: 14px 28px;
-            font-size: 1.1rem;
+            padding: 15px 28px;
+            font-size: 1.15rem;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
+            margin-top: 10px;
             transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
         }
         .checkout-btn:hover { background-color: #059669; transform: scale(1.02); }
         .footer { margin-top: 40px; font-size: 0.85rem; color: #64748b; }
@@ -81,18 +113,57 @@
     <div class="container">
         <h1>AI Video Generator Pro</h1>
         <p>Create hyper-realistic, cinematic AI videos instantly using automated text prompts.</p>
+        <!-- 1 & 2: User Inputs Layout -->
         <div class="prompt-box">
             <label style="display:block; text-align:left; margin-bottom:8px; font-weight:600;">1. Enter Your Video Vision:</label>
             <textarea id="videoPrompt" placeholder="Describe your video setup here (e.g., A cinematic drone shot of Lagos coastline at sunset, 8k resolution, ultra-detailed)..."></textarea>
+            
             <label style="display:block; text-align:left; margin-bottom:8px; font-weight:600;">2. Your Account Email:</label>
             <input type="email" id="userEmail" placeholder="name@example.com" style="width:100%; padding:12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;">
         </div>
-        <div class="pricing-card">
-            <h3>Premium Generation Bundle</h3>
-            <div class="price">₦1,000</div>
-            <p style="font-size:0.9rem; margin-bottom:20px;">Get 10 high-definition AI generation credits instantly. (Transaction fees added at checkout)</p>
-            <button class="checkout-btn" id="payButton">Unlock 10 Video Credits 🚀</button>
+        <!-- 🎥 Showcase Gallery Layout Component -->
+        <div class="gallery-title">🎥 Master Generation Showcase (AI Output Proof)</div>
+        <div class="video-grid">
+            <div class="video-item">
+                <video autoplay loop muted playsinline src="https://mixkit.co"></video>
+                <div class="video-caption">"Cinematic cyberpunk subway, neon lighting, 8k."</div>
+            </div>
+            <div class="video-item">
+                <video autoplay loop muted playsinline src="https://mixkit.co"></video>
+                <div class="video-caption">"Drone flight over luxury tropical resort, midday."</div>
+            </div>
         </div>
+        <!-- 💵 Global Multi-Tier Pricing Selectors Layout Component -->
+        <div class="pricing-section-title">3. Select Your Credit Scale Package:</div>
+        <div class="pricing-grid">
+            <!-- Tier 1: Starter -->
+            <div class="pricing-card" onclick="document.getElementById('planStarter').click()">
+                <label class="plan-selector">
+                    <input type="radio" name="pricingPlan" id="planStarter" value="starter" checked> Starter Pack
+                </label>
+                <div class="price">₦1,000</div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin:0;">10 HD Video Credits</p>
+            </div>
+            <!-- Tier 2: Creator (Featured) -->
+            <div class="pricing-card featured" onclick="document.getElementById('planCreator').click()">
+                <div style="background:var(--accent-color); color:white; font-size:0.7rem; font-weight:bold; padding:2px 6px; border-radius:20px; position:absolute; top:-10px; left:50%; transform:translateX(-50%);">BEST VALUE</div>
+                <label class="plan-selector" style="margin-top:5px;">
+                    <input type="radio" name="pricingPlan" id="planCreator" value="creator"> Creator Pro
+                </label>
+                <div class="price">₦4,500</div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin:0;">50 HD Video Credits</p>
+            </div>
+            <!-- Tier 3: Agency -->
+            <div class="pricing-card" onclick="document.getElementById('planAgency').click()">
+                <label class="plan-selector">
+                    <input type="radio" name="pricingPlan" id="planAgency" value="agency"> Agency Scale
+                </label>
+                <div class="price">₦12,000</div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin:0;">150 HD Video Credits</p>
+            </div>
+        </div>
+        <!-- Master Transaction Action Trigger -->
+        <button class="checkout-btn" id="payButton">Securely Unlock Selected Credits 🚀</button>
         <div class="footer">
             Powered by DavidEvroh AI Creations Engine & Secure Paystack Portal
         </div>
