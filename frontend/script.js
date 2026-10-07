@@ -11,9 +11,9 @@ document.getElementById('payButton').addEventListener('click', function() {
         return;
     }
     // 2. Your Live Paystack Product Page link
-    const basePaystackUrl = "https://paystack.shop";
+    const basePaystackUrl = "https://paystack.shop/pay/jic4zlecaf";
     // 3. Append metadata parameters so Paystack passes the user's email straight through
-    const finalCheckoutUrl = `${basePaystackUrl}?email=${encodeURIComponent(emailValue)}`;
+    const finalCheckoutUrl = `${basePaystackUrl}/?email=${encodeURIComponent(emailValue)}`;
     console.log("Redirecting client securely to Live Checkout: ", finalCheckoutUrl);
     // 4. Send user straight to the live payment gateway portal
     window.location.href = finalCheckoutUrl;
