@@ -11,7 +11,6 @@ load_dotenv()
 # --- Cloud Database Configuration ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("⚠️ DATABASE NOTICE: Supabase credentials missing. Queue tracking offline.")
     supabase = None
@@ -22,12 +21,15 @@ MASTER_API_KEY = os.getenv("MASTER_API_KEY", "super_secret_test_key_123")
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 app = FastAPI(
-    title="MovieAI Studio - Commercial Video Engine",
+    title="Movieai Studio - Commercial Video Engine",
     description="Production-grade asynchronous multi-tenant AI video processing engine.",
     version="2.0.0"
 )
+# 🌐 FRONTEND MOUNTING LAYER
+frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+# 🔒 SECURITY LAYER
 def get_api_key(api_key: str = Depends(api_key_header)):
-    app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
     if api_key == MASTER_API_KEY or os.getenv("ENVIRONMENT") == "marketplace":
         return api_key
     raise HTTPException(status_code=401, detail="Unauthorized: Invalid API Key")
