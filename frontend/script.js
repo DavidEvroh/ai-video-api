@@ -33,6 +33,7 @@ if (authNavBtn) {
     authOverlay.style.display = 'flex';
     console.log("OVERLAY DISPLAY AFTER:", authOverlay.style.display);
 });
+}
 if (closeAuthBtn) {
     closeAuthBtn.addEventListener('click', () => { authOverlay.style.display = 'none'; });
 }
