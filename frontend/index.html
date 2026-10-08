@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Generator Pro</title>
+    <title>AI Video Generator Pro - Studio Engine</title>
+    <!-- Supabase JS Library Integration -->
+    <script src="https://jsdelivr.net"></script>
     <style>
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
             --accent-color: #3b82f6;
             --accent-green: #10b981;
+            --accent-purple: #a855f7;
             --text-color: #f8fafc;
         }
         body {
@@ -18,156 +21,161 @@
             color: var(--text-color);
             margin: 0;
             padding: 0;
+        }
+        /* Top Navigation Header Layout */
+        header {
+            width: 100%;
+            background: #020617;
+            border-bottom: 1px solid #1e293b;
+            padding: 15px 5%;
+            box-sizing: border-box;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
         }
-        .container {
+        .logo { font-size: 1.3rem; font-weight: bold; color: var(--text-color); }
+        .nav-btn {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .nav-btn.logout { background: #ef4444; display: none; }
+        
+        .main-wrapper {
+            max-width: 750px;
             width: 90%;
-            max-width: 650px;
+            margin: 100px auto 40px auto;
             text-align: center;
-            padding: 20px;
         }
-        h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--text-color); }
-        p { color: #94a3b8; margin-bottom: 30px; }
-        .prompt-box {
+        h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .sub-text { color: #94a3b8; margin-bottom: 25px; }
+
+        /* Auth Portal Modal Popup Overlay */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 200; display: none;
+        }
+        .auth-box {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%; max-width: 380px;
+            border: 1px solid #334155;
+            position: relative;
+        }
+        .auth-box h2 { margin-top: 0; margin-bottom: 20px; font-size: 1.5rem; }
+        .auth-box input {
+            width: 100%; padding: 12px; margin-bottom: 12px;
+            background: #0f172a; border: 1px solid #334155;
+            border-radius: 6px; color: white; box-sizing: border-box; font-size: 1rem;
+        }
+        .auth-submit-btn {
+            width: 100%; padding: 12px; background: var(--accent-color);
+            color: white; border: none; border-radius: 6px;
+            font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 5px;
+        }
+        .auth-toggle-link { color: #3b82f6; font-size: 0.85rem; margin-top: 15px; display: block; cursor: pointer; text-decoration: underline; }
+        .close-auth { position: absolute; top: 15px; right: 15px; cursor: pointer; color: #64748b; font-size: 1.2rem; }
+        /* General Card Layout Component */
+        .section-box {
             background: var(--card-bg);
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             margin-bottom: 25px;
+            border: 1px solid #1e293b;
         }
         textarea {
-            width: 100%;
-            height: 100px;
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            color: #fff;
-            padding: 12px;
-            box-sizing: border-box;
-            resize: none;
-            font-size: 1rem;
-            margin-bottom: 15px;
+            width: 100%; height: 100px; background: #0f172a;
+            border: 1px solid #334155; border-radius: 8px;
+            color: #fff; padding: 12px; box-sizing: border-box;
+            resize: none; font-size: 1rem; margin-bottom: 15px;
         }
         textarea:focus { border-color: var(--accent-color); outline: none; }
-        
         /* 🎥 Showcase Gallery Layout Styles */
-        .gallery-title { text-align: left; font-size: 1.2rem; margin-top: 25px; margin-bottom: 12px; font-weight: 600; color: #cbd5e1; }
-        .video-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .video-item {
-            background: #1e293b;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #334155;
-        }
+        .gallery-title { text-align: left; font-size: 1.2rem; margin-bottom: 12px; font-weight: 600; color: #cbd5e1; }
+        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .video-item { background: #0f172a; border-radius: 8px; overflow: hidden; border: 1px solid #334155; }
         video { width: 100%; height: 130px; display: block; object-fit: cover; }
         .video-caption { font-size: 0.75rem; color: #94a3b8; padding: 8px; text-align: left; font-style: italic; }
-        /* 💵 Global Multi-Tier Pricing Layout Styles */
+        /* 👥 User Dashboard Layout Component Styles */
+        .dashboard-container { display: none; text-align: left; }
+        .metrics-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .metric-card { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #334155; }
+        .metric-card h4 { margin: 0; color: #64748b; font-size: 0.85rem; text-transform: uppercase; }
+        .metric-card .value { font-size: 1.8rem; font-weight: bold; color: var(--accent-green); margin-top: 5px; }
+        .download-list { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #334155; max-height: 150px; overflow-y: auto; }
+        .download-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
+        .download-item:last-child { border-bottom: none; }
+        .download-dl-link { color: var(--accent-color); text-decoration: none; font-weight: bold; }
+        /* 👑 Executive Admin Control Layout Component Styles */
+        .admin-container { display: none; text-align: left; border: 2px solid var(--accent-purple); }
+        .admin-badge { background: var(--accent-purple); color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
+        .admin-controls { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .admin-input { flex: 1; min-width: 150px; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: white; }
+        .admin-btn { background: var(--accent-purple); border: none; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        /* 💵 Multi-Tier Pricing Layout Components */
         .pricing-section-title { text-align: left; font-size: 1.2rem; margin-bottom: 12px; font-weight: 600; color: #cbd5e1; }
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .pricing-card {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 1px solid #334155;
-            padding: 18px;
-            border-radius: 12px;
-            position: relative;
-            cursor: pointer;
-            text-align: center;
-        }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .pricing-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; padding: 18px; border-radius: 12px; position: relative; cursor: pointer; text-align: center; }
         .pricing-card.featured { border: 2px solid var(--accent-color); }
         .price { font-size: 1.6rem; font-weight: bold; color: var(--accent-green); margin: 10px 0; }
         .plan-selector { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; }
-        .plan-selector input { cursor: pointer; width: 16px; height: 16px; }
+        .plan-selector input { width: 16px; height: 16px; cursor: pointer; }
         .checkout-btn {
-            background-color: var(--accent-green);
-            color: white;
-            border: none;
-            padding: 15px 28px;
-            font-size: 1.15rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-            transition: transform 0.2s, background 0.2s;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+            background-color: var(--accent-green); color: white; border: none;
+            padding: 15px 28px; font-size: 1.15rem; font-weight: bold;
+            border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); transition: transform 0.2s, background 0.2s;
         }
         .checkout-btn:hover { background-color: #059669; transform: scale(1.02); }
         .footer { margin-top: 40px; font-size: 0.85rem; color: #64748b; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Top Navigation Header -->
+    <header>
+        <div class="logo">Movieai Studio Pro 🤖</div>
+        <div>
+            <button class="nav-btn" id="authNavBtn">Sign In / Register</button>
+            <button class="nav-btn logout" id="logoutBtn">Logout</button>
+        </div>
+    </header>
+    <div class="main-wrapper">
         <h1>AI Video Generator Pro</h1>
-        <p>Create hyper-realistic, cinematic AI videos instantly using automated text prompts.</p>
-        <!-- 1 & 2: User Inputs Layout -->
-        <div class="prompt-box">
-            <label style="display:block; text-align:left; margin-bottom:8px; font-weight:600;">1. Enter Your Video Vision:</label>
-            <textarea id="videoPrompt" placeholder="Describe your video setup here (e.g., A cinematic drone shot of Lagos coastline at sunset, 8k resolution, ultra-detailed)..."></textarea>
-            
-            <label style="display:block; text-align:left; margin-bottom:8px; font-weight:600;">2. Your Account Email:</label>
-            <input type="email" id="userEmail" placeholder="name@example.com" style="width:100%; padding:12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#fff; font-size:1rem; box-sizing:border-box;">
-        </div>
-        <!-- 🎥 Showcase Gallery Layout Component -->
-        <div class="gallery-title">🎥 Master Generation Showcase (AI Output Proof)</div>
-        <div class="video-grid">
-            <div class="video-item">
-                <video autoplay loop muted playsinline src="https://mixkit.co"></video>
-                <div class="video-caption">"Cinematic cyberpunk subway, neon lighting, 8k."</div>
-            </div>
-            <div class="video-item">
-                <video autoplay loop muted playsinline src="https://mixkit.co"></video>
-                <div class="video-caption">"Drone flight over luxury tropical resort, midday."</div>
+        <p class="sub-text">Create hyper-realistic, cinematic AI videos instantly using automated text prompts.</p>
+        <!-- 👑 EXECUTIVE ADMIN PANEL (Hidden initially, opens only for your admin email!) -->
+        <div class="section-box admin-container" id="adminPanel">
+            <div class="admin-badge">EXECUTIVE ADMINISTRATION COMMAND CONSOLE</div>
+            <p style="font-size: 0.85rem; color: #94a3b8; margin: 0 0 15px 0;">Manually adjust user credits ledger rows across database servers directly.</p>
+            <div class="admin-controls">
+                <input type="email" class="admin-input" id="adminTargetEmail" placeholder="user@example.com">
+                <input type="number" class="admin-input" id="adminCreditAmt" placeholder="Credits (e.g. 50)">
+                <button class="admin-btn" id="adminAdjustBtn">Update User Ledger Tokens ⚡</button>
             </div>
         </div>
-        <!-- 💵 Global Multi-Tier Pricing Selectors Layout Component -->
-        <div class="pricing-section-title">3. Select Your Credit Scale Package:</div>
-        <div class="pricing-grid">
-            <!-- Tier 1: Starter -->
-            <div class="pricing-card" onclick="document.getElementById('planStarter').click()">
-                <label class="plan-selector">
-                    <input type="radio" name="pricingPlan" id="planStarter" value="starter" checked> Starter Pack
-                </label>
-                <div class="price">₦1,000</div>
-                <p style="font-size:0.8rem; color:#94a3b8; margin:0;">10 HD Video Credits</p>
+        <!-- 👥 CUSTOMER PORTAL DASHBOARD (Hidden initially, visible only when logged in!) -->
+        <div class="section-box dashboard-container" id="userDashboard">
+            <h3 style="margin-top: 0; margin-bottom: 15px; color: #cbd5e1;">👥 Your Customer Account Dashboard</h3>
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <h4>Available Video Credits</h4>
+                    <div class="value" id="dashCredits">0</div>
+                </div>
+                <div class="metric-card">
+                    <h4>Account Account Standing</h4>
+                    <div class="value" id="dashStatus" style="color: #3b82f6; font-size: 1.3rem; margin-top: 12px;">Active Client</div>
+                </div>
             </div>
-            <!-- Tier 2: Creator (Featured) -->
-            <div class="pricing-card featured" onclick="document.getElementById('planCreator').click()">
-                <div style="background:var(--accent-color); color:white; font-size:0.7rem; font-weight:bold; padding:2px 6px; border-radius:20px; position:absolute; top:-10px; left:50%; transform:translateX(-50%);">BEST VALUE</div>
-                <label class="plan-selector" style="margin-top:5px;">
-                    <input type="radio" name="pricingPlan" id="planCreator" value="creator"> Creator Pro
-                </label>
-                <div class="price">₦4,500</div>
-                <p style="font-size:0.8rem; color:#94a3b8; margin:0;">50 HD Video Credits</p>
-            </div>
-            <!-- Tier 3: Agency -->
-            <div class="pricing-card" onclick="document.getElementById('planAgency').click()">
-                <label class="plan-selector">
-                    <input type="radio" name="pricingPlan" id="planAgency" value="agency"> Agency Scale
-                </label>
-                <div class="price">₦12,000</div>
-                <p style="font-size:0.8rem; color:#94a3b8; margin:0;">150 HD Video Credits</p>
-            </div>
-        </div>
-        <!-- Master Transaction Action Trigger -->
-        <button class="checkout-btn" id="payButton">Securely Unlock Selected Credits 🚀</button>
-        <div class="footer">
-            Powered by DavidEvroh AI Creations Engine & Secure Paystack Portal
-        </div>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
