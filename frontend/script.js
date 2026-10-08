@@ -25,7 +25,11 @@ let currentAuthenticatedUser = null;
 console.log("AUTH BUTTON CODE LOADED");
 // Modal Overlay Visibility Toggles
 if (authNavBtn) {
-    authNavBtn.addEventListener('click', () => { authOverlay.style.display = 'flex'; });
+    console.log("AUTH BUTTON FOUND");
+    authNavBtn.addEventListener('click', () => {
+        console.log("AUTH BUTTON CLICKED");
+        authOverlay.style.display = 'flex';
+    });
 }
 if (closeAuthBtn) {
     closeAuthBtn.addEventListener('click', () => { authOverlay.style.display = 'none'; });
