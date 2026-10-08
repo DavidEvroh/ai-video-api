@@ -27,10 +27,12 @@ console.log("AUTH BUTTON CODE LOADED");
 if (authNavBtn) {
     console.log("AUTH BUTTON FOUND");
     authNavBtn.addEventListener('click', () => {
-        console.log("AUTH BUTTON CLICKED");
-        authOverlay.style.display = 'flex';
-    });
-}
+    console.log("AUTH BUTTON CLICKED");
+    console.log("AUTH OVERLAY:", authOverlay);
+    console.log("OVERLAY DISPLAY BEFORE:", authOverlay.style.display);
+    authOverlay.style.display = 'flex';
+    console.log("OVERLAY DISPLAY AFTER:", authOverlay.style.display);
+});
 if (closeAuthBtn) {
     closeAuthBtn.addEventListener('click', () => { authOverlay.style.display = 'none'; });
 }
