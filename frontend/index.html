@@ -49,7 +49,6 @@
             font-size: 0.9rem;
         }
         .nav-btn.logout { background: #ef4444; display: none; }
-        
         .main-wrapper {
             max-width: 750px;
             width: 90%;
@@ -58,7 +57,6 @@
         }
         h1 { font-size: 2.5rem; margin-bottom: 10px; }
         .sub-text { color: #94a3b8; margin-bottom: 25px; }
-
         /* Auth Portal Modal Popup Overlay */
         .auth-overlay {
             position: fixed;
@@ -156,7 +154,7 @@
     <div class="main-wrapper">
         <h1>AI Video Generator Pro</h1>
         <p class="sub-text">Create hyper-realistic, cinematic AI videos instantly using automated text prompts.</p>
-        <!-- 👑 EXECUTIVE ADMIN PANEL (Hidden initially, opens only for your admin email!) -->
+        <!-- 👑 EXECUTIVE ADMIN PANEL -->
         <div class="section-box admin-container" id="adminPanel">
             <div class="admin-badge">EXECUTIVE ADMINISTRATION COMMAND CONSOLE</div>
             <p style="font-size: 0.85rem; color: #94a3b8; margin: 0 0 15px 0;">Manually adjust user credits ledger rows across database servers directly.</p>
@@ -166,7 +164,7 @@
                 <button class="admin-btn" id="adminAdjustBtn">Update User Ledger Tokens ⚡</button>
             </div>
         </div>
-        <!-- 👥 CUSTOMER PORTAL DASHBOARD (Hidden initially, visible only when logged in!) -->
+        <!-- 👥 CUSTOMER PORTAL DASHBOARD -->
         <div class="section-box dashboard-container" id="userDashboard">
             <h3 style="margin-top: 0; margin-bottom: 15px; color: #cbd5e1;">👥 Your Customer Account Dashboard</h3>
             <div class="metrics-row">
@@ -179,3 +177,19 @@
                     <div class="value" id="dashStatus" style="color: #3b82f6; font-size: 1.3rem; margin-top: 12px;">Active Client</div>
                 </div>
             </div>
+            <h4 style="margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem;">🎥 Past Render Generation Downloads History:</h4>
+<!-- 🎯 Secure User Account Authentication Gateway Modal Box Overlay -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-box">
+            <div class="close-auth" id="closeAuthBtn">&times;</div>
+            <h2 id="authTitle">Sign In to Studio Portal</h2>
+            <input type="email" id="authEmail" placeholder="Your Email Address">
+            <input type="password" id="authPassword" placeholder="Secure Password">
+            <button class="auth-submit-btn" id="authSubmitBtn">Log In</button>
+            <div class="auth-toggle-link" id="authToggleLink">Don't have an account? Sign Up Here</div>
+        </div>
+    </div>
+    <!-- ⚡ THE CRITICAL MASTER SCRIPT FILE ASSET LOADER -->
+    <script src="script.js"></script>
+</body>
+</html>
