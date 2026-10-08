@@ -13,6 +13,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 const closeAuthBtn = document.getElementById('closeAuthBtn');
 const authSubmitBtn = document.getElementById('authSubmitBtn');
 const authToggleLink = document.getElementById('authToggleLink');
+const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 const authTitle = document.getElementById('authTitle');
 const authEmailInput = document.getElementById('authEmail');
 const authPasswordInput = document.getElementById('authPassword');
@@ -43,6 +44,22 @@ if (authToggleLink) {
         authTitle.innerText = isSignUpMode ? "Create Studio Account" : "Sign In to Studio Portal";
         authSubmitBtn.innerText = isSignUpMode ? "Sign Up" : "Log In";
         authToggleLink.innerText = isSignUpMode ? "Already have an account? Log In" : "Don't have an account? Sign Up Here";
+    });
+}
+if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', async () => {
+        const email = authEmailInput.value.trim();
+        if (!email) {
+            alert("Please enter your admin email address first.");
+            return;
+        }
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            if (error) throw error;
+            alert("Password reset email sent. Please check your email inbox.");
+        } catch (err) {
+            alert("Password reset error: " + err.message);
+        }
     });
 }
 // 🔐 Authentication Execution Engine (Supabase Auth Gateway)
