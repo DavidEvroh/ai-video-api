@@ -21,11 +21,11 @@ document.getElementById('payButton').addEventListener('click', function() {
     let basePaystackUrl = "";
     // 3. Clean routing assignment maps matching your exact Paystack Pages
     if (selectedPlan === "starter") {
-        basePaystackUrl = "https://paystack.com";
+        basePaystackUrl = "https://paystack.shop/pay/jic4zlecaf";
     } else if (selectedPlan === "creator") {
-        basePaystackUrl = "https://paystack.com";
+        basePaystackUrl = "https://paystack.shop/pay/g296htppq6";
     } else if (selectedPlan === "agency") {
-        basePaystackUrl = "https://paystack.com";
+        basePaystackUrl = "https://paystack.shop/pay/jnqj-2772o";
     }
     // 4. Assemble trailing slash before query parameters parsing configuration
     const finalCheckoutUrl = `${basePaystackUrl}/?email=${encodeURIComponent(emailValue)}`;
