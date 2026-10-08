@@ -22,6 +22,7 @@ const dashCredits = document.getElementById('dashCredits');
 const dashDownloads = document.getElementById('dashDownloads');
 let isSignUpMode = false;
 let currentAuthenticatedUser = null;
+console.log("AUTH BUTTON CODE LOADED");
 // Modal Overlay Visibility Toggles
 if (authNavBtn) {
     authNavBtn.addEventListener('click', () => { authOverlay.style.display = 'flex'; });
