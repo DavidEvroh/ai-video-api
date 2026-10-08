@@ -1,5 +1,5 @@
 // 🔑 SUPABASE CORE INITIALIZATION CODES - FIXED VARIABLE CLASH
-const SUPABASE_URL = "https://pmaktenhccpkovasktng.co";
+const SUPABASE_URL = "https://pmaktenhccpkovasktng.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_vsnuOHOVnNYyPMWeosz_Ww_TKk20xkM"; 
 // Your exact copied key string
 // Renamed instance to supabaseClient to prevent browser naming loop crashes!
