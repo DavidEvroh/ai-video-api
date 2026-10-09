@@ -132,14 +132,87 @@ async function fetchUserAccountCredits(userId) {
         console.log("Profile sync update queue tracking logging: ", err.message);
     }
 }
-// 👑 Executive Command Execution Function (Admin Manual Adjustment)
+/* 👑 Secure Admin Credit Adjustment */
 const adminAdjustBtn = document.getElementById('adminAdjustBtn');
 if (adminAdjustBtn) {
     adminAdjustBtn.addEventListener('click', async () => {
-        const targetEmail = document.getElementById('adminTargetEmail').value.trim();
-        const creditAmt = parseInt(document.getElementById('adminCreditAmt').value);
-        if (!targetEmail || isNaN(creditAmt)) { alert("Please supply complete admin targets!"); return; }
-        alert(`Admin Command Executed: Setting balance ledger row metrics for ${targetEmail} to ${creditAmt} tokens across network lines!`);
+        const targetEmail = document
+            .getElementById('adminTargetEmail')
+            .value.trim();
+
+        const creditInput = document
+            .getElementById('adminCreditAmt')
+            .value.trim();
+        if (!targetEmail || creditInput === '') {
+            alert('Please enter the customer email and credit balance.');
+            return;
+        }
+        const creditAmt = Number(creditInput);
+        if (
+            !Number.isSafeInteger(creditAmt) ||
+            creditAmt < 0 ||
+            creditAmt > 1000000
+        ) {
+            alert('Enter a whole-number credit balance from 0 to 1,000,000.');
+            return;
+        }
+        if (
+            !currentAuthenticatedUser ||
+            currentAuthenticatedUser.email?.toLowerCase() !==
+                MASTER_ADMIN_EMAIL.toLowerCase()
+        ) {
+            alert('Admin access required. Please sign in with your admin account.');
+            return;
+        }
+        const confirmed = confirm(
+            `Set ${targetEmail}'s total credit balance to ${creditAmt}?\n\nThis replaces their current balance.`
+        );
+
+        if (!confirmed) return;
+        const originalText = adminAdjustBtn.textContent;
+        adminAdjustBtn.disabled = true;
+        adminAdjustBtn.textContent = 'Updating credits...';
+        try {
+            const { data, error } =
+                await supabaseClient.functions.invoke(
+                    'admin-credit-manager',
+                    {
+                        body: {
+                            targetEmail,
+                            credits: creditAmt
+                        }
+                    }
+                );
+            if (error) {
+                let details = error.message;
+                if (error.context) {
+                    try {
+                        const responseBody = await error.context.json();
+                        if (responseBody?.error) {
+                            details = responseBody.error;
+                        }
+                    } catch {
+                        // Keep the original error message.
+                    }
+                }
+                throw new Error(details);
+            }
+            if (!data?.success) {
+                throw new Error(
+                    data?.error || 'The server did not confirm the credit update.'
+                );
+            }
+            alert(
+                `Success! ${targetEmail}'s credit balance is now ${data.credits}.`
+            );
+            document.getElementById('adminCreditAmt').value = '';
+        } catch (err) {
+            console.error('Admin credit update failed:', err);
+            alert('Credit update failed: ' + err.message);
+        } finally {
+            adminAdjustBtn.disabled = false;
+            adminAdjustBtn.textContent = originalText;
+        }
     });
 }
 // 💵 Master Paystack Transact Action Route Mapping Engine
