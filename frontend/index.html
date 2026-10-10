@@ -190,6 +190,27 @@
         <button class="auth-submit-btn" id="authSubmitBtn">Log In</button>
         <div class="auth-toggle-link" id="authToggleLink">Don't have an account? Sign Up Here</div>
         <div class="auth-toggle-link" id="forgotPasswordLink">Forgot Password?</div>
+<!-- 🔐 Password Recovery Screen -->
+        <div id="resetPasswordPanel" style="display: none;">
+            <h3>Choose a New Password</h3>
+            <input
+                type="password"
+                id="newPasswordInput"
+                placeholder="Enter New Password"
+                autocomplete="new-password"
+                minlength="8"
+            >
+            <input
+                type="password"
+                id="confirmNewPasswordInput"
+                placeholder="Confirm New Password"
+                autocomplete="new-password"
+                minlength="8"
+            >
+            <button type="button" id="saveNewPasswordBtn">
+                Save New Password
+            </button>
+        </div>
     </div>
 </div>
     <!-- ⚡ THE CRITICAL MASTER SCRIPT FILE ASSET LOADER -->

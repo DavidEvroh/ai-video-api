@@ -3,7 +3,17 @@ const SUPABASE_URL = "https://pmaktenhccpkovasktng.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_vsnuOHOVnNYyPMWeosz_Ww_TKk20xkM"; 
 // Your exact copied key string
 // Renamed instance to supabaseClient to prevent browser naming loop crashes!
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            detectSessionInUrl: true,
+            persistSession: true,
+            autoRefreshToken: true
+        }
+    }
+);
 // Define your master admin control email profile account identity!
 const MASTER_ADMIN_EMAIL = "davidevroh1989@gmail.com"; 
 // DOM Element Registry
@@ -17,6 +27,10 @@ const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 const authTitle = document.getElementById('authTitle');
 const authEmailInput = document.getElementById('authEmail');
 const authPasswordInput = document.getElementById('authPassword');
+const resetPasswordPanel = document.getElementById('resetPasswordPanel');
+const newPasswordInput = document.getElementById('newPasswordInput');
+const confirmNewPasswordInput = document.getElementById('confirmNewPasswordInput');
+const saveNewPasswordBtn = document.getElementById('saveNewPasswordBtn');
 const userDashboard = document.getElementById('userDashboard');
 const adminPanel = document.getElementById('adminPanel');
 const dashCredits = document.getElementById('dashCredits');
@@ -54,11 +68,86 @@ if (forgotPasswordLink) {
             return;
         }
         try {
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/?mode=reset-password`
+});
             if (error) throw error;
             alert("Password reset email sent. Please check your email inbox.");
         } catch (err) {
             alert("Password reset error: " + err.message);
+        }
+    });
+}
+/* 🔄 Detect Supabase Password Recovery */
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+        if (resetPasswordPanel) {
+            resetPasswordPanel.style.display = 'block';
+        }
+        if (authTitle) {
+            authTitle.innerText = 'Choose a New Password';
+        }
+        if (authSubmitBtn) {
+            authSubmitBtn.style.display = 'none';
+        }
+        if (authToggleLink) {
+            authToggleLink.style.display = 'none';
+        }
+        if (forgotPasswordLink) {
+            forgotPasswordLink.style.display = 'none';
+        }
+        if (authPasswordInput) {
+            authPasswordInput.style.display = 'none';
+        }
+        if (authOverlay) {
+            authOverlay.style.display = 'flex';
+        }
+    }
+});
+/* 🔐 Save New Password After Recovery */
+if (saveNewPasswordBtn) {
+    saveNewPasswordBtn.addEventListener('click', async () => {
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmNewPasswordInput.value;
+        if (!newPassword || !confirmPassword) {
+            alert('Please enter and confirm your new password.');
+            return;
+        }
+        if (newPassword.length < 8) {
+            alert('Your new password must be at least 8 characters long.');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            alert('The passwords do not match. Please try again.');
+            return;
+        }
+        saveNewPasswordBtn.disabled = true;
+        saveNewPasswordBtn.textContent = 'Saving Password...';
+        try {
+            const { error } = await supabaseClient.auth.updateUser({
+                password: newPassword
+            });
+            if (error) throw error;
+            alert('Password updated successfully! You can now sign in with your new password.');
+            newPasswordInput.value = '';
+            confirmNewPasswordInput.value = '';
+            resetPasswordPanel.style.display = 'none';
+authPasswordInput.style.display = '';
+            authSubmitBtn.style.display = '';
+            authToggleLink.style.display = '';
+            forgotPasswordLink.style.display = '';
+            authToggleLink.innerText = "Don't have an account? Sign Up Here";
+            authSubmitBtn.innerText = 'Log In';
+            isSignUpMode = false;
+            authTitle.innerText = 'Sign In to Studio Portal';
+            authSubmitBtn.innerText = 'Log In';
+            authOverlay.style.display = 'flex';
+        } catch (err) {
+            alert('Password update error: ' + err.message);
+        } finally {
+            saveNewPasswordBtn.disabled = false;
+            saveNewPasswordBtn.textContent = 'Save New Password';
         }
     });
 }
