@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+ "Access-Control-Allow-Origin": "https://ai-video-api-02om.onrender.com",
   "Access-Control-Allow-Headers":
     "authorization, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -27,7 +27,6 @@ Deno.serve(async (req: Request) => {
   }
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
   if (!supabaseUrl || !serviceKey) {
     return reply(500, {
       error: "Server configuration is incomplete.",
@@ -83,6 +82,7 @@ Deno.serve(async (req: Request) => {
     targetUser = data.users.find(
       (user) => user.email?.toLowerCase() === targetEmail
     );
+
     if (targetUser || data.users.length < 1000) {
       break;
     }

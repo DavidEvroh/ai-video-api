@@ -256,7 +256,6 @@ if (adminAdjustBtn) {
         const confirmed = confirm(
             `Set ${targetEmail}'s total credit balance to ${creditAmt}?\n\nThis replaces their current balance.`
         );
-
         if (!confirmed) return;
         const originalText = adminAdjustBtn.textContent;
         adminAdjustBtn.disabled = true;
