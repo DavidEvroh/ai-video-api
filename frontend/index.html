@@ -174,7 +174,7 @@
                     <div class="value" id="dashCredits">0</div>
                 </div>
                 <div class="metric-card">
-                    <h4>Account Standing</h4>
+                    <h4>Account Account Standing</h4>
                     <div class="value" id="dashStatus" style="color: #3b82f6; font-size: 1.3rem; margin-top: 12px;">Active Client</div>
                 </div>
             </div>
@@ -185,9 +185,51 @@
     <div class="auth-box">
         <div class="close-auth" id="closeAuthBtn">&times;</div>
         <h2 id="authTitle">Sign In to Studio Portal</h2>
+        <input
+    type="text"
+    id="authFullName"
+    placeholder="Your Full Name"
+    autocomplete="name"
+    style="display: none;"
+>
         <input type="email" id="authEmail" placeholder="Your Email Address">
         <input type="password" id="authPassword" placeholder="Secure Password">
+<button type="button" id="toggleAuthPassword">
+    Show Password
+</button>
+<input
+    type="password"
+    id="confirmAuthPassword"
+<button type="button" id="toggleConfirmAuthPassword">
+    Show Password
+</button>
+    placeholder="Confirm Your Password"
+    autocomplete="new-password"
+    style="display: none;"
+>
         <button class="auth-submit-btn" id="authSubmitBtn">Log In</button>
+<!-- Email Verification Panel -->
+<div id="emailVerificationPanel" style="display: none;">
+    <h3>Verify Your Email</h3>
+    <p>Enter the one-time code from your confirmation email.</p>
+    <input
+        type="email"
+        id="verificationEmail"
+        placeholder="Your Email Address"
+        autocomplete="email"
+    >
+    <input
+        type="text"
+        id="verificationCode"
+        placeholder="Enter Verification Code"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="10"
+    >
+    <button type="button" id="verifyEmailBtn">
+        Verify Email
+    </button>
+</div>
         <div class="auth-toggle-link" id="authToggleLink">Don't have an account? Sign Up Here</div>
         <div class="auth-toggle-link" id="forgotPasswordLink">Forgot Password?</div>
 <!-- 🔐 Password Recovery Screen -->

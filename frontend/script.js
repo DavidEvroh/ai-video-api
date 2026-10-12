@@ -26,7 +26,25 @@ const authToggleLink = document.getElementById('authToggleLink');
 const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 const authTitle = document.getElementById('authTitle');
 const authEmailInput = document.getElementById('authEmail');
+const authFullNameInput = document.getElementById('authFullName');
+const emailVerificationPanel = document.getElementById('emailVerificationPanel');
+const verificationEmailInput = document.getElementById('verificationEmail');
+const verificationCodeInput = document.getElementById('verificationCode');
+const verifyEmailBtn = document.getElementById('verifyEmailBtn');
+const confirmAuthPasswordInput = document.getElementById('confirmAuthPassword');
 const authPasswordInput = document.getElementById('authPassword');
+const toggleAuthPasswordBtn = document.getElementById('toggleAuthPassword');
+const toggleConfirmAuthPasswordBtn = document.getElementById('toggleConfirmAuthPassword');
+/* 👁️ Show or hide the main password */
+if (toggleAuthPasswordBtn && authPasswordInput) {
+    toggleAuthPasswordBtn.addEventListener('click', () => {
+        const isHidden = authPasswordInput.type === 'password';
+        authPasswordInput.type = isHidden ? 'text' : 'password';
+        toggleAuthPasswordBtn.textContent = isHidden
+            ? 'Hide Password'
+            : 'Show Password';
+    });
+}
 const resetPasswordPanel = document.getElementById('resetPasswordPanel');
 const newPasswordInput = document.getElementById('newPasswordInput');
 const confirmNewPasswordInput = document.getElementById('confirmNewPasswordInput');
@@ -117,7 +135,6 @@ if (saveNewPasswordBtn) {
             alert('Your new password must be at least 8 characters long.');
             return;
         }
-
         if (newPassword !== confirmPassword) {
             alert('The passwords do not match. Please try again.');
             return;
@@ -155,24 +172,140 @@ authPasswordInput.style.display = '';
 if (authSubmitBtn) {
     authSubmitBtn.addEventListener('click', async () => {
         const email = authEmailInput.value.trim();
-        const password = authPasswordInput.value.trim();
+        const password = authPasswordInput.value;
+        if (!email || !password) {
+            alert("Please enter your email address and password.");
+            return;
+        }
+        if (isSignUpMode) {
+            const fullName = authFullNameInput.value.trim();
+            const confirmPassword = confirmAuthPasswordInput.value;
 
-        if (!email || !password) { alert("Please complete both form inputs!"); return; }
+            if (!fullName) {
+                alert("Please enter your full name.");
+                authFullNameInput.focus();
+                return;
+            }
+            if (password.length < 8) {
+                alert("Your password must be at least 8 characters long.");
+                authPasswordInput.focus();
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert("Your passwords do not match. Please try again.");
+                confirmAuthPasswordInput.focus();
+                return;
+            }
+        }
+        const originalButtonText = authSubmitBtn.textContent;
+        authSubmitBtn.disabled = true;
+        authSubmitBtn.textContent = isSignUpMode
+            ? "Creating Account..."
+            : "Signing In...";
         try {
             if (isSignUpMode) {
-                // Run Supabase Cloud Registration API
-                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                const fullName = authFullNameInput.value.trim();
+
+                const { data, error } =
+                    await supabaseClient.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: {
+                                full_name: fullName
+                            }
+                        }
+                    });
                 if (error) throw error;
-                alert("Registration successful! Welcome to the studio workspace portal.");
+if (data.user && !data.session) {
+    if (verificationEmailInput) {
+        verificationEmailInput.value = email;
+    }
+    if (emailVerificationPanel) {
+        emailVerificationPanel.style.display = 'block';
+    }
+    if (authSubmitBtn) authSubmitBtn.style.display = 'none';
+    if (authToggleLink) authToggleLink.style.display = 'none';
+    if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
+    if (authFullNameInput) authFullNameInput.style.display = 'none';
+    if (authEmailInput) authEmailInput.style.display = 'none';
+    if (authPasswordInput) authPasswordInput.style.display = 'none';
+    if (confirmAuthPasswordInput) {
+        confirmAuthPasswordInput.style.display = 'none';
+    }
+    alert(
+        "Registration received! Check your email for the verification code " +
+        "or use the confirmation link to verify your account."
+    );
+    return;
+}
+                if (data.session) {
+                    authOverlay.style.display = 'none';
+                    await checkActiveSessionState();
+                } else {
+                    alert(
+                        "Account registration was submitted. " +
+                        "Please check your email before signing in."
+                    );
+                }
             } else {
-                // Run Supabase Cloud Authentication API
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                const { error } =
+                    await supabaseClient.auth.signInWithPassword({
+                        email,
+                        password
+                    });
+
                 if (error) throw error;
+
+                authOverlay.style.display = 'none';
+                await checkActiveSessionState();
             }
-            authOverlay.style.display = 'none';
-            checkActiveSessionState();
         } catch (err) {
             alert("Authentication Error: " + err.message);
+        } finally {
+            authSubmitBtn.disabled = false;
+            authSubmitBtn.textContent = originalButtonText;
+        }
+    });
+}
+/* ✉️ Verify New User Email Using One-Time Code */
+if (verifyEmailBtn) {
+    verifyEmailBtn.addEventListener('click', async () => {
+        const email = verificationEmailInput.value.trim();
+        const token = verificationCodeInput.value.trim();
+
+        if (!email || !token) {
+            alert('Please enter your email address and verification code.');
+            return;
+        }
+        const originalText = verifyEmailBtn.textContent;
+        verifyEmailBtn.disabled = true;
+        verifyEmailBtn.textContent = 'Verifying...';
+        try {
+            const { data, error } = await supabaseClient.auth.verifyOtp({
+                email: email,
+                token: token,
+                type: 'signup'
+            });
+            if (error) throw error;
+            alert('Email verified successfully! Welcome to MovieAI Studio.');
+            emailVerificationPanel.style.display = 'none';
+            verificationCodeInput.value = '';
+            // Restore the normal sign-in screen
+            if (authSubmitBtn) authSubmitBtn.style.display = '';
+            if (authToggleLink) authToggleLink.style.display = '';
+            if (forgotPasswordLink) forgotPasswordLink.style.display = '';
+            if (authEmailInput) authEmailInput.style.display = '';
+            if (authPasswordInput) authPasswordInput.style.display = '';
+            // Return the form to Sign In mode
+            isSignUpMode = false;
+            if (authTitle) authTitle.innerText = 'Sign In to Studio Portal';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Log In';
+ } catch (error) {
+            alert('Email verification failed: ' + error.message);
+        } finally {
+            verifyEmailBtn.disabled = false;
+            verifyEmailBtn.textContent = originalText;
         }
     });
 }
@@ -228,7 +361,6 @@ if (adminAdjustBtn) {
         const targetEmail = document
             .getElementById('adminTargetEmail')
             .value.trim();
-
         const creditInput = document
             .getElementById('adminCreditAmt')
             .value.trim();
@@ -256,6 +388,7 @@ if (adminAdjustBtn) {
         const confirmed = confirm(
             `Set ${targetEmail}'s total credit balance to ${creditAmt}?\n\nThis replaces their current balance.`
         );
+
         if (!confirmed) return;
         const originalText = adminAdjustBtn.textContent;
         adminAdjustBtn.disabled = true;
@@ -320,11 +453,11 @@ if (payButton) {
         const selectedPlan = selectedPlanElement ? selectedPlanElement.value : "starter";
         let basePaystackUrl = "";
         if (selectedPlan === "starter") {
-            basePaystackUrl = "https://paystack.shop";
+            basePaystackUrl = "https://paystack.shop/pay/jic4zlecaf";
         } else if (selectedPlan === "creator") {
-            basePaystackUrl = "https://paystack.shop";
+            basePaystackUrl = "https://paystack.shop/pay/g296htppq6";
         } else if (selectedPlan === "agency") {
-            basePaystackUrl = "https://paystack.shop";
+            basePaystackUrl = "https://paystack.shop/pay/jnqj-2772o";
         }
         const finalCheckoutUrl = `${basePaystackUrl}/?email=${encodeURIComponent(emailValue)}`;
         console.log(`Redirecting authenticated customer to ${selectedPlan} checkout: `, finalCheckoutUrl);
