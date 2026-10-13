@@ -27,6 +27,13 @@ const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 const authTitle = document.getElementById('authTitle');
 const authEmailInput = document.getElementById('authEmail');
 const authFullNameInput = document.getElementById('authFullName');
+const authMiddleNameInput = document.getElementById('authMiddleName');
+const authUsernameInput = document.getElementById('authUsername');
+const authPhoneInput = document.getElementById('authPhone');
+const authDateOfBirthInput = document.getElementById('authDateOfBirth');
+const registrationAgreements = document.getElementById('registrationAgreements');
+const notRobotCheckbox = document.getElementById('notRobotCheckbox');
+const agreeTermsCheckbox = document.getElementById('agreeTermsCheckbox');
 const emailVerificationPanel = document.getElementById('emailVerificationPanel');
 const verificationEmailInput = document.getElementById('verificationEmail');
 const verificationCodeInput = document.getElementById('verificationCode');
@@ -73,9 +80,56 @@ if (closeAuthBtn) {
 if (authToggleLink) {
     authToggleLink.addEventListener('click', () => {
         isSignUpMode = !isSignUpMode;
-        authTitle.innerText = isSignUpMode ? "Create Studio Account" : "Sign In to Studio Portal";
-        authSubmitBtn.innerText = isSignUpMode ? "Sign Up" : "Log In";
-        authToggleLink.innerText = isSignUpMode ? "Already have an account? Log In" : "Don't have an account? Sign Up Here";
+        // Update the heading and main button
+        authTitle.innerText = isSignUpMode
+            ? "Create Studio Account"
+            : "Sign In to Studio Portal";
+        authSubmitBtn.innerText = isSignUpMode
+            ? "Sign Up"
+            : "Log In";
+        authToggleLink.innerText = isSignUpMode
+            ? "Already have an account? Log In"
+            : "Don't have an account? Sign Up Here";
+        // Show or hide registration-only fields
+        const registrationFields = [
+            authFullNameInput,
+            authMiddleNameInput,
+            authUsernameInput,
+            authPhoneInput,
+            authDateOfBirthInput,
+            confirmAuthPasswordInput,
+            registrationAgreements
+        ];
+        registrationFields.forEach((field) => {
+            if (field) {
+                field.style.display = isSignUpMode ? '' : 'none';
+            }
+        });
+        // Show or hide the password visibility buttons
+        if (toggleConfirmAuthPasswordBtn) {
+            toggleConfirmAuthPasswordBtn.style.display =
+                isSignUpMode ? '' : 'none';
+        }
+        // Reset password visibility when switching modes
+        if (authPasswordInput) {
+            authPasswordInput.type = 'password';
+        }
+        if (confirmAuthPasswordInput) {
+            confirmAuthPasswordInput.type = 'password';
+        }
+        if (toggleAuthPasswordBtn) {
+            toggleAuthPasswordBtn.textContent = 'Show Password';
+        }
+        if (toggleConfirmAuthPasswordBtn) {
+            toggleConfirmAuthPasswordBtn.textContent = 'Show Password';
+        }
+        // Clear registration checkboxes when switching modes
+        if (notRobotCheckbox) {
+            notRobotCheckbox.checked = false;
+        }
+        if (agreeTermsCheckbox) {
+            agreeTermsCheckbox.checked = false;
+        }
     });
 }
 if (forgotPasswordLink) {
@@ -168,86 +222,145 @@ authPasswordInput.style.display = '';
         }
     });
 }
+if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
+    toggleConfirmAuthPasswordBtn.addEventListener('click', () => {
+        const showing = confirmAuthPasswordInput.type === 'text';
+        confirmAuthPasswordInput.type = showing ? 'password' : 'text';
+        toggleConfirmAuthPasswordBtn.textContent = showing
+            ? 'Show Password'
+            : 'Hide Password';
+    });
+}
 // 🔐 Authentication Execution Engine (Supabase Auth Gateway)
 if (authSubmitBtn) {
     authSubmitBtn.addEventListener('click', async () => {
-        const email = authEmailInput.value.trim();
-        const password = authPasswordInput.value;
-        if (!email || !password) {
-            alert("Please enter your email address and password.");
-            return;
-        }
-        if (isSignUpMode) {
-            const fullName = authFullNameInput.value.trim();
-            const confirmPassword = confirmAuthPasswordInput.value;
-
-            if (!fullName) {
-                alert("Please enter your full name.");
-                authFullNameInput.focus();
-                return;
-            }
-            if (password.length < 8) {
-                alert("Your password must be at least 8 characters long.");
-                authPasswordInput.focus();
-                return;
-            }
-            if (password !== confirmPassword) {
-                alert("Your passwords do not match. Please try again.");
-                confirmAuthPasswordInput.focus();
-                return;
-            }
-        }
+const email = authEmailInput.value.trim();
+const password = authPasswordInput.value;
+if (!email || !password) {
+    alert("Please enter your email address and password.");
+    return;
+}
+if (isSignUpMode) {
+    const fullName = authFullNameInput.value.trim();
+    const middleName = authMiddleNameInput.value.trim();
+    const username = authUsernameInput.value.trim();
+    const phone = authPhoneInput.value.trim();
+    const dateOfBirth = authDateOfBirthInput.value;
+    const confirmPassword = confirmAuthPasswordInput.value;
+    if (!fullName) {
+        alert("Please enter your full legal name.");
+        authFullNameInput.focus();
+        return;
+    }
+    if (!username) {
+        alert("Please choose a username.");
+        authUsernameInput.focus();
+        return;
+    }
+    if (!phone) {
+        alert("Please enter your phone number.");
+        authPhoneInput.focus();
+        return;
+    }
+    if (!dateOfBirth) {
+        alert("Please enter your date of birth.");
+        authDateOfBirthInput.focus();
+        return;
+    }
+    if (new Date(dateOfBirth + "T00:00:00") > new Date()) {
+        alert("Your date of birth cannot be in the future.");
+        authDateOfBirthInput.focus();
+        return;
+    }
+    if (password.length < 8) {
+        alert("Your password must contain at least 8 characters.");
+        authPasswordInput.focus();
+        return;
+    }
+    if (password !== confirmPassword) {
+        alert("Your passwords do not match.");
+        confirmAuthPasswordInput.focus();
+        return;
+    }
+    if (!notRobotCheckbox.checked) {
+        alert("Please tick the I'm not a robot checkbox.");
+        notRobotCheckbox.focus();
+        return;
+    }
+    if (!agreeTermsCheckbox.checked) {
+        alert("Please agree to the Terms of Service and Privacy Policy.");
+        agreeTermsCheckbox.focus();
+        return;
+    }
+}
         const originalButtonText = authSubmitBtn.textContent;
         authSubmitBtn.disabled = true;
         authSubmitBtn.textContent = isSignUpMode
             ? "Creating Account..."
             : "Signing In...";
         try {
-            if (isSignUpMode) {
-                const fullName = authFullNameInput.value.trim();
-
-                const { data, error } =
-                    await supabaseClient.auth.signUp({
-                        email,
-                        password,
-                        options: {
-                            data: {
-                                full_name: fullName
-                            }
-                        }
-                    });
-                if (error) throw error;
-if (data.user && !data.session) {
-    if (verificationEmailInput) {
-        verificationEmailInput.value = email;
+if (isSignUpMode) {
+    const fullName = authFullNameInput.value.trim();
+    const middleName = authMiddleNameInput.value.trim();
+    const username = authUsernameInput.value.trim();
+    const phone = authPhoneInput.value.trim();
+    const dateOfBirth = authDateOfBirthInput.value;
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                full_name: fullName,
+                middle_name: middleName || null,
+                username: username,
+                phone: phone,
+                date_of_birth: dateOfBirth
+            }
+        }
+    });
+    if (error) throw error;
+    if (data.user && !data.session) {
+        if (verificationEmailInput) {
+            verificationEmailInput.value = email;
+        }
+        if (emailVerificationPanel) {
+            emailVerificationPanel.style.display = 'block';
+        }
+        if (authSubmitBtn) authSubmitBtn.style.display = 'none';
+        if (authToggleLink) authToggleLink.style.display = 'none';
+        if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
+        if (authFullNameInput) authFullNameInput.style.display = 'none';
+        if (authMiddleNameInput) authMiddleNameInput.style.display = 'none';
+        if (authUsernameInput) authUsernameInput.style.display = 'none';
+        if (authPhoneInput) authPhoneInput.style.display = 'none';
+        if (authDateOfBirthInput) authDateOfBirthInput.style.display = 'none';
+        if (authEmailInput) authEmailInput.style.display = 'none';
+        if (authPasswordInput) authPasswordInput.style.display = 'none';
+        if (confirmAuthPasswordInput) {
+            confirmAuthPasswordInput.style.display = 'none';
+        }
+        if (toggleAuthPasswordBtn) {
+            toggleAuthPasswordBtn.style.display = 'none';
+        }
+        if (toggleConfirmAuthPasswordBtn) {
+            toggleConfirmAuthPasswordBtn.style.display = 'none';
+        }
+        if (registrationAgreements) {
+            registrationAgreements.style.display = 'none';
+        }
+        alert(
+            "Registration received! Check your email for the verification instructions."
+        );
+        return;
     }
-    if (emailVerificationPanel) {
-        emailVerificationPanel.style.display = 'block';
+    if (data.session) {
+        authOverlay.style.display = 'none';
+        await checkActiveSessionState();
+    } else {
+        alert(
+            "Account registration was submitted. Please check your email before signing in."
+        );
     }
-    if (authSubmitBtn) authSubmitBtn.style.display = 'none';
-    if (authToggleLink) authToggleLink.style.display = 'none';
-    if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
-    if (authFullNameInput) authFullNameInput.style.display = 'none';
-    if (authEmailInput) authEmailInput.style.display = 'none';
-    if (authPasswordInput) authPasswordInput.style.display = 'none';
-    if (confirmAuthPasswordInput) {
-        confirmAuthPasswordInput.style.display = 'none';
-    }
-    alert(
-        "Registration received! Check your email for the verification code " +
-        "or use the confirmation link to verify your account."
-    );
-    return;
-}
-                if (data.session) {
-                    authOverlay.style.display = 'none';
-                    await checkActiveSessionState();
-                } else {
-                    alert(
-                        "Account registration was submitted. " +
-                        "Please check your email before signing in."
-                    );
-                }
             } else {
                 const { error } =
                     await supabaseClient.auth.signInWithPassword({
@@ -291,16 +404,48 @@ if (verifyEmailBtn) {
             alert('Email verified successfully! Welcome to MovieAI Studio.');
             emailVerificationPanel.style.display = 'none';
             verificationCodeInput.value = '';
-            // Restore the normal sign-in screen
+ // Restore the normal sign-in screen
             if (authSubmitBtn) authSubmitBtn.style.display = '';
             if (authToggleLink) authToggleLink.style.display = '';
             if (forgotPasswordLink) forgotPasswordLink.style.display = '';
+            if (authFullNameInput) authFullNameInput.style.display = 'none';
+            if (authMiddleNameInput) authMiddleNameInput.style.display = 'none';
+            if (authUsernameInput) authUsernameInput.style.display = 'none';
+            if (authPhoneInput) authPhoneInput.style.display = 'none';
+            if (authDateOfBirthInput) authDateOfBirthInput.style.display = 'none';
+            if (registrationAgreements) {
+                registrationAgreements.style.display = 'none';
+            }
             if (authEmailInput) authEmailInput.style.display = '';
-            if (authPasswordInput) authPasswordInput.style.display = '';
+            if (authPasswordInput) {
+                authPasswordInput.style.display = '';
+                authPasswordInput.type = 'password';
+            }
+            if (confirmAuthPasswordInput) {
+                confirmAuthPasswordInput.style.display = 'none';
+                confirmAuthPasswordInput.type = 'password';
+                confirmAuthPasswordInput.value = '';
+            }
+            if (toggleAuthPasswordBtn) {
+                toggleAuthPasswordBtn.style.display = '';
+                toggleAuthPasswordBtn.textContent = 'Show Password';
+            }
+            if (toggleConfirmAuthPasswordBtn) {
+                toggleConfirmAuthPasswordBtn.style.display = 'none';
+                toggleConfirmAuthPasswordBtn.textContent = 'Show Password';
+            }
             // Return the form to Sign In mode
             isSignUpMode = false;
-            if (authTitle) authTitle.innerText = 'Sign In to Studio Portal';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Log In';
+            if (authTitle) {
+                authTitle.innerText = 'Sign In to Studio Portal';
+            }
+            if (authSubmitBtn) {
+                authSubmitBtn.textContent = 'Log In';
+            }
+            if (authEmailInput) authEmailInput.value = '';
+            if (authPasswordInput) authPasswordInput.value = '';
+            if (notRobotCheckbox) notRobotCheckbox.checked = false;
+            if (agreeTermsCheckbox) agreeTermsCheckbox.checked = false;
  } catch (error) {
             alert('Email verification failed: ' + error.message);
         } finally {

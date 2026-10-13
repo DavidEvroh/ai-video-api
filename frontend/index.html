@@ -185,28 +185,94 @@
     <div class="auth-box">
         <div class="close-auth" id="closeAuthBtn">&times;</div>
         <h2 id="authTitle">Sign In to Studio Portal</h2>
-        <input
+<input
     type="text"
     id="authFullName"
-    placeholder="Your Full Name"
+    placeholder="Full Legal Name"
     autocomplete="name"
     style="display: none;"
 >
-        <input type="email" id="authEmail" placeholder="Your Email Address">
-        <input type="password" id="authPassword" placeholder="Secure Password">
+<input
+    type="text"
+    id="authMiddleName"
+    placeholder="Middle Name (Optional)"
+    autocomplete="additional-name"
+    style="display: none;"
+>
+<input
+    type="text"
+    id="authUsername"
+    placeholder="Choose a Username"
+    autocomplete="username"
+    style="display: none;"
+>
+<input
+    type="tel"
+    id="authPhone"
+    placeholder="Phone Number (include country code)"
+    autocomplete="tel"
+    style="display: none;"
+<input
+    type="date"
+    id="authDateOfBirth"
+    autocomplete="bday"
+    aria-label="Date of Birth"
+    style="display: none;"
+>
+>
+<input
+    type="email"
+    id="authEmail"
+    placeholder="Your Email Address"
+    autocomplete="email"
+>
+<input
+    type="password"
+    id="authPassword"
+    placeholder="Secure Password"
+    autocomplete="current-password"
+>
 <button type="button" id="toggleAuthPassword">
     Show Password
 </button>
 <input
     type="password"
     id="confirmAuthPassword"
-<button type="button" id="toggleConfirmAuthPassword">
-    Show Password
-</button>
     placeholder="Confirm Your Password"
     autocomplete="new-password"
     style="display: none;"
 >
+<button
+    type="button"
+    id="toggleConfirmAuthPassword"
+    style="display: none;"
+>
+    Show Password
+</button>
+<!-- Registration-only verification and agreements -->
+<div id="registrationAgreements" style="display: none;">
+    <label>
+        <input
+            type="checkbox"
+            id="notRobotCheckbox"
+        >
+        I'm not a robot
+    </label>
+    <label>
+        <input
+            type="checkbox"
+            id="agreeTermsCheckbox"
+        >
+        I agree to the
+        <a href="/terms.html" target="_blank" rel="noopener">
+            Terms of Service
+        </a>
+        and
+        <a href="/privacy.html" target="_blank" rel="noopener">
+            Privacy Policy
+        </a>.
+    </label>
+</div>
         <button class="auth-submit-btn" id="authSubmitBtn">Log In</button>
 <!-- Email Verification Panel -->
 <div id="emailVerificationPanel" style="display: none;">
