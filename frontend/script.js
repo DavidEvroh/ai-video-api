@@ -26,7 +26,8 @@ const authToggleLink = document.getElementById('authToggleLink');
 const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 const authTitle = document.getElementById('authTitle');
 const authEmailInput = document.getElementById('authEmail');
-const authFullNameInput = document.getElementById('authFullName');
+const authFirstNameInput = document.getElementById('authFirstName');
+const authLastNameInput = document.getElementById('authLastName');
 const authMiddleNameInput = document.getElementById('authMiddleName');
 const authUsernameInput = document.getElementById('authUsername');
 const authPhoneInput = document.getElementById('authPhone');
@@ -39,17 +40,25 @@ const verificationEmailInput = document.getElementById('verificationEmail');
 const verificationCodeInput = document.getElementById('verificationCode');
 const verifyEmailBtn = document.getElementById('verifyEmailBtn');
 const confirmAuthPasswordInput = document.getElementById('confirmAuthPassword');
+const confirmPasswordField = document.getElementById('confirmPasswordField');
 const authPasswordInput = document.getElementById('authPassword');
+const mainPasswordField = document.getElementById('mainPasswordField');
 const toggleAuthPasswordBtn = document.getElementById('toggleAuthPassword');
 const toggleConfirmAuthPasswordBtn = document.getElementById('toggleConfirmAuthPassword');
-/* 👁️ Show or hide the main password */
-if (toggleAuthPasswordBtn && authPasswordInput) {
-    toggleAuthPasswordBtn.addEventListener('click', () => {
-        const isHidden = authPasswordInput.type === 'password';
-        authPasswordInput.type = isHidden ? 'text' : 'password';
-        toggleAuthPasswordBtn.textContent = isHidden
-            ? 'Hide Password'
-            : 'Show Password';
+/* 👁️ Show or hide the confirmation password */
+if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
+    toggleConfirmAuthPasswordBtn.addEventListener('click', () => {
+        const isHidden = confirmAuthPasswordInput.type === 'password';
+        confirmAuthPasswordInput.type = isHidden ? 'text' : 'password';
+        toggleConfirmAuthPasswordBtn.textContent = '👁';
+        toggleConfirmAuthPasswordBtn.setAttribute(
+            'aria-label',
+            isHidden ? 'Hide confirmation password' : 'Show confirmation password'
+        );
+        toggleConfirmAuthPasswordBtn.setAttribute(
+            'title',
+            isHidden ? 'Hide confirmation password' : 'Show confirmation password'
+        );
     });
 }
 const resetPasswordPanel = document.getElementById('resetPasswordPanel');
@@ -91,13 +100,14 @@ if (authToggleLink) {
             ? "Already have an account? Log In"
             : "Don't have an account? Sign Up Here";
         // Show or hide registration-only fields
-        const registrationFields = [
-            authFullNameInput,
-            authMiddleNameInput,
+       const registrationFields = [
+    authFirstNameInput,
+    authMiddleNameInput,
+    authLastNameInput,
             authUsernameInput,
             authPhoneInput,
             authDateOfBirthInput,
-            confirmAuthPasswordInput,
+            confirmPasswordField,
             registrationAgreements
         ];
         registrationFields.forEach((field) => {
@@ -117,12 +127,22 @@ if (authToggleLink) {
         if (confirmAuthPasswordInput) {
             confirmAuthPasswordInput.type = 'password';
         }
-        if (toggleAuthPasswordBtn) {
-            toggleAuthPasswordBtn.textContent = 'Show Password';
-        }
-        if (toggleConfirmAuthPasswordBtn) {
-            toggleConfirmAuthPasswordBtn.textContent = 'Show Password';
-        }
+if (toggleAuthPasswordBtn) {
+    toggleAuthPasswordBtn.textContent = '👁';
+    toggleAuthPasswordBtn.setAttribute('aria-label', 'Show password');
+    toggleAuthPasswordBtn.setAttribute('title', 'Show password');
+}
+if (toggleConfirmAuthPasswordBtn) {
+    toggleConfirmAuthPasswordBtn.textContent = '👁';
+    toggleConfirmAuthPasswordBtn.setAttribute(
+        'aria-label',
+        'Show confirmation password'
+    );
+    toggleConfirmAuthPasswordBtn.setAttribute(
+        'title',
+        'Show confirmation password'
+    );
+}
         // Clear registration checkboxes when switching modes
         if (notRobotCheckbox) {
             notRobotCheckbox.checked = false;
@@ -241,17 +261,23 @@ if (!email || !password) {
     return;
 }
 if (isSignUpMode) {
-    const fullName = authFullNameInput.value.trim();
-    const middleName = authMiddleNameInput.value.trim();
+    const firstName = authFirstNameInput.value.trim();
+const middleName = authMiddleNameInput.value.trim();
+const lastName = authLastNameInput.value.trim();
     const username = authUsernameInput.value.trim();
     const phone = authPhoneInput.value.trim();
     const dateOfBirth = authDateOfBirthInput.value;
     const confirmPassword = confirmAuthPasswordInput.value;
-    if (!fullName) {
-        alert("Please enter your full legal name.");
-        authFullNameInput.focus();
-        return;
-    }
+    if (!firstName) {
+    alert("Please enter your first name.");
+    authFirstNameInput.focus();
+    return;
+}
+if (!lastName) {
+    alert("Please enter your last name.");
+    authLastNameInput.focus();
+    return;
+}
     if (!username) {
         alert("Please choose a username.");
         authUsernameInput.focus();
@@ -300,8 +326,9 @@ if (isSignUpMode) {
             : "Signing In...";
         try {
 if (isSignUpMode) {
-    const fullName = authFullNameInput.value.trim();
-    const middleName = authMiddleNameInput.value.trim();
+  const firstName = authFirstNameInput.value.trim();
+const middleName = authMiddleNameInput.value.trim();
+const lastName = authLastNameInput.value.trim();
     const username = authUsernameInput.value.trim();
     const phone = authPhoneInput.value.trim();
     const dateOfBirth = authDateOfBirthInput.value;
@@ -310,7 +337,11 @@ if (isSignUpMode) {
         password,
         options: {
             data: {
-                full_name: fullName,
+                first_name: firstName,
+last_name: lastName,
+full_name: [firstName, middleName, lastName]
+    .filter(Boolean)
+    .join(' '),
                 middle_name: middleName || null,
                 username: username,
                 phone: phone,
@@ -329,12 +360,16 @@ if (isSignUpMode) {
         if (authSubmitBtn) authSubmitBtn.style.display = 'none';
         if (authToggleLink) authToggleLink.style.display = 'none';
         if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
-        if (authFullNameInput) authFullNameInput.style.display = 'none';
+if (authFirstNameInput) authFirstNameInput.style.display = 'none';
+if (authMiddleNameInput) authMiddleNameInput.style.display = 'none';
+if (authLastNameInput) authLastNameInput.style.display = 'none';
         if (authMiddleNameInput) authMiddleNameInput.style.display = 'none';
         if (authUsernameInput) authUsernameInput.style.display = 'none';
         if (authPhoneInput) authPhoneInput.style.display = 'none';
         if (authDateOfBirthInput) authDateOfBirthInput.style.display = 'none';
         if (authEmailInput) authEmailInput.style.display = 'none';
+if (mainPasswordField) mainPasswordField.style.display = 'none';
+if (confirmPasswordField) confirmPasswordField.style.display = 'none';
         if (authPasswordInput) authPasswordInput.style.display = 'none';
         if (confirmAuthPasswordInput) {
             confirmAuthPasswordInput.style.display = 'none';
@@ -408,7 +443,9 @@ if (verifyEmailBtn) {
             if (authSubmitBtn) authSubmitBtn.style.display = '';
             if (authToggleLink) authToggleLink.style.display = '';
             if (forgotPasswordLink) forgotPasswordLink.style.display = '';
-            if (authFullNameInput) authFullNameInput.style.display = 'none';
+            if (authFirstNameInput) authFirstNameInput.style.display = 'none';
+if (authMiddleNameInput) authMiddleNameInput.style.display = 'none';
+if (authLastNameInput) authLastNameInput.style.display = 'none';
             if (authMiddleNameInput) authMiddleNameInput.style.display = 'none';
             if (authUsernameInput) authUsernameInput.style.display = 'none';
             if (authPhoneInput) authPhoneInput.style.display = 'none';

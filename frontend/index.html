@@ -8,6 +8,30 @@
    <!-- Supabase JS Library Integration -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+.password-field {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+.password-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 48px;
+}
+.password-field .password-eye {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 6px;
+    font-size: 18px;
+    line-height: 1;
+    z-index: 2;
+}
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
@@ -185,11 +209,12 @@
     <div class="auth-box">
         <div class="close-auth" id="closeAuthBtn">&times;</div>
         <h2 id="authTitle">Sign In to Studio Portal</h2>
+<!-- Registration Fields -->
 <input
     type="text"
-    id="authFullName"
-    placeholder="Full Legal Name"
-    autocomplete="name"
+    id="authFirstName"
+    placeholder="First Name"
+    autocomplete="given-name"
     style="display: none;"
 >
 <input
@@ -197,6 +222,13 @@
     id="authMiddleName"
     placeholder="Middle Name (Optional)"
     autocomplete="additional-name"
+    style="display: none;"
+>
+<input
+    type="text"
+    id="authLastName"
+    placeholder="Last Name"
+    autocomplete="family-name"
     style="display: none;"
 >
 <input
@@ -212,6 +244,7 @@
     placeholder="Phone Number (include country code)"
     autocomplete="tel"
     style="display: none;"
+>
 <input
     type="date"
     id="authDateOfBirth"
@@ -219,36 +252,44 @@
     aria-label="Date of Birth"
     style="display: none;"
 >
->
 <input
     type="email"
     id="authEmail"
     placeholder="Your Email Address"
     autocomplete="email"
 >
-<input
-    type="password"
-    id="authPassword"
-    placeholder="Secure Password"
-    autocomplete="current-password"
->
-<button type="button" id="toggleAuthPassword">
-    Show Password
-</button>
-<input
-    type="password"
-    id="confirmAuthPassword"
-    placeholder="Confirm Your Password"
-    autocomplete="new-password"
-    style="display: none;"
->
-<button
-    type="button"
-    id="toggleConfirmAuthPassword"
-    style="display: none;"
->
-    Show Password
-</button>
+<!-- Secure Password -->
+<div class="password-field">
+    <input
+        type="password"
+        id="authPassword"
+        placeholder="Secure Password"
+        autocomplete="current-password"
+    >
+    <button
+        type="button"
+        id="toggleAuthPassword"
+        class="password-eye"
+        aria-label="Show password"
+        title="Show password"
+    >👁</button>
+</div>
+<!-- Confirm Password -->
+<div class="password-field" id="mainPasswordField">
+    <input
+        type="password"
+        id="confirmAuthPassword"
+        placeholder="Confirm Your Password"
+        autocomplete="new-password"
+    >
+    <button
+        type="button"
+        id="toggleConfirmAuthPassword"
+        class="password-eye"
+        aria-label="Show confirmation password"
+        title="Show confirmation password"
+    >👁</button>
+</div>
 <!-- Registration-only verification and agreements -->
 <div id="registrationAgreements" style="display: none;">
     <label>
