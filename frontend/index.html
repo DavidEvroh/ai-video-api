@@ -279,6 +279,17 @@
         title="Show password"
     >👁</button>
 </div>
+<!-- Live Password Requirements -->
+<div id="passwordRequirements" style="display: none; margin: 8px 0 14px; font-size: 13px;">
+    <p style="margin: 0 0 6px; font-weight: 600;">
+        Password must contain:
+    </p>
+    <p id="passwordLengthRule" style="margin: 4px 0;">○ At least 8 characters</p>
+    <p id="passwordUpperRule" style="margin: 4px 0;">○ One uppercase letter (A–Z)</p>
+    <p id="passwordLowerRule" style="margin: 4px 0;">○ One lowercase letter (a–z)</p>
+    <p id="passwordNumberRule" style="margin: 4px 0;">○ One number (0–9)</p>
+    <p id="passwordSymbolRule" style="margin: 4px 0;">○ One symbol (&amp;, $, *, ?, /, _, ., -)</p>
+</div>
 <!-- Confirm Password -->
 <div class="password-field" id="confirmPasswordField" style="display: none;">
     <input

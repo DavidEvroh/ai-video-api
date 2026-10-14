@@ -62,6 +62,51 @@ const verifyEmailBtn = document.getElementById('verifyEmailBtn');
 const confirmAuthPasswordInput = document.getElementById('confirmAuthPassword');
 const confirmPasswordField = document.getElementById('confirmPasswordField');
 const authPasswordInput = document.getElementById('authPassword');
+const passwordRequirements = document.getElementById('passwordRequirements');
+const passwordRules = [
+    {
+        element: document.getElementById('passwordLengthRule'),
+        test: password => password.length >= 8,
+        label: 'At least 8 characters'
+    },
+    {
+        element: document.getElementById('passwordUpperRule'),
+        test: password => /[A-Z]/.test(password),
+        label: 'One uppercase letter (A–Z)'
+    },
+    {
+        element: document.getElementById('passwordLowerRule'),
+        test: password => /[a-z]/.test(password),
+        label: 'One lowercase letter (a–z)'
+    },
+    {
+        element: document.getElementById('passwordNumberRule'),
+        test: password => /[0-9]/.test(password),
+        label: 'One number (0–9)'
+    },
+    {
+        element: document.getElementById('passwordSymbolRule'),
+        test: password => /[&$*?/_-]/.test(password),
+        label: 'One symbol (&, $, *, ?, /, _, ., -)'
+    }
+];
+function updatePasswordRequirements() {
+    const password = authPasswordInput.value;
+    passwordRules.forEach(rule => {
+        if (!rule.element) return;
+        const passed = rule.test(password);
+        rule.element.textContent =
+            (passed ? '✓ ' : '○ ') + rule.label;
+        rule.element.style.color =
+            passed ? '#22c55e' : '';
+    });
+}
+if (authPasswordInput) {
+    authPasswordInput.addEventListener(
+        'input',
+        updatePasswordRequirements
+    );
+}
 const mainPasswordField = document.getElementById('mainPasswordField');
 const toggleAuthPasswordBtn = document.getElementById('toggleAuthPassword');
 const toggleConfirmAuthPasswordBtn = document.getElementById('toggleConfirmAuthPassword');
@@ -119,6 +164,19 @@ if (authToggleLink) {
         authToggleLink.innerText = isSignUpMode
             ? "Already have an account? Log In"
             : "Don't have an account? Sign Up Here";
+// Show password requirements only during Sign Up
+        if (passwordRequirements) {
+            passwordRequirements.style.display =
+                isSignUpMode ? 'block' : 'none';
+        }
+        if (!isSignUpMode) {
+            passwordRules.forEach(rule => {
+                if (rule.element) {
+                    rule.element.textContent = '○ ' + rule.label;
+                    rule.element.style.color = '';
+                }
+            });
+        }
         // Show or hide registration-only fields
        const registrationFields = [
     authFirstNameInput,
