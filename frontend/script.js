@@ -86,7 +86,7 @@ const passwordRules = [
     },
     {
         element: document.getElementById('passwordSymbolRule'),
-        test: password => /[&$*?/_-]/.test(password),
+       test: password => /[^A-Za-z0-9]/.test(password),
         label: 'One symbol (&, $, *, ?, /, _, ., -)'
     }
 ];
@@ -109,6 +109,21 @@ if (authPasswordInput) {
 }
 const mainPasswordField = document.getElementById('mainPasswordField');
 const toggleAuthPasswordBtn = document.getElementById('toggleAuthPassword');
+/* 👁️ Show or hide the main password */
+if (toggleAuthPasswordBtn && authPasswordInput) {
+    toggleAuthPasswordBtn.addEventListener('click', () => {
+        const isHidden = authPasswordInput.type === 'password';
+        authPasswordInput.type = isHidden ? 'text' : 'password';
+        toggleAuthPasswordBtn.setAttribute(
+            'aria-label',
+            isHidden ? 'Hide password' : 'Show password'
+        );
+        toggleAuthPasswordBtn.setAttribute(
+            'title',
+            isHidden ? 'Hide password' : 'Show password'
+        );
+    });
+}
 const toggleConfirmAuthPasswordBtn = document.getElementById('toggleConfirmAuthPassword');
 /* 👁️ Show or hide the confirmation password */
 if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
@@ -404,6 +419,38 @@ if (dobDate > today) {
     authDateOfBirthInput.focus();
     return;
 }
+const missingPasswordRequirements = [
+        {
+            test: password.length >= 8,
+            message: 'At least 8 characters'
+        },
+        {
+            test: /[A-Z]/.test(password),
+            message: 'At least one uppercase letter (A–Z)'
+        },
+        {
+            test: /[a-z]/.test(password),
+            message: 'At least one lowercase letter (a–z)'
+        },
+        {
+            test: /[0-9]/.test(password),
+            message: 'At least one number (0–9)'
+        },
+        {
+            test: /[^A-Za-z0-9]/.test(password),
+            message: 'At least one symbol (such as . ! @ # $ % & *)'
+        }
+    ].filter(rule => !rule.test);
+    if (missingPasswordRequirements.length > 0) {
+        alert(
+            'Please meet these password requirements:\n\n' +
+            missingPasswordRequirements
+                .map(rule => '• ' + rule.message)
+                .join('\n')
+        );
+        authPasswordInput.focus();
+        return;
+    }
     if (password.length < 8) {
         alert("Your password must contain at least 8 characters.");
         authPasswordInput.focus();
