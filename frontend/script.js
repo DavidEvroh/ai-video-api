@@ -131,29 +131,6 @@ if (toggleAuthPasswordBtn && authPasswordInput) {
 }
 const toggleConfirmAuthPasswordBtn = document.getElementById('toggleConfirmAuthPassword');
 /* 👁️ Show or hide ONLY the confirmation password */
-if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
-    toggleConfirmAuthPasswordBtn.onclick = function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        const showPassword =
-            confirmAuthPasswordInput.type === 'password';
-        confirmAuthPasswordInput.type =
-            showPassword ? 'text' : 'password';
-        this.textContent = showPassword ? 'Hide Password' : 'Show Password';
-        this.setAttribute(
-            'aria-label',
-            showPassword
-                ? 'Hide confirmation password'
-                : 'Show confirmation password'
-        );
-        this.setAttribute(
-            'title',
-            showPassword
-                ? 'Hide confirmation password'
-                : 'Show confirmation password'
-        );
-    };
-}
 const resetPasswordPanel = document.getElementById('resetPasswordPanel');
 const newPasswordInput = document.getElementById('newPasswordInput');
 const confirmNewPasswordInput = document.getElementById('confirmNewPasswordInput');
