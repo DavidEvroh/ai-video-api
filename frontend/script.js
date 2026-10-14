@@ -120,12 +120,18 @@ if (authToggleLink) {
             toggleConfirmAuthPasswordBtn.style.display =
                 isSignUpMode ? '' : 'none';
         }
-        // Reset password visibility when switching modes
+// Reset and clear password fields when switching modes
         if (authPasswordInput) {
             authPasswordInput.type = 'password';
+            authPasswordInput.value = '';
         }
         if (confirmAuthPasswordInput) {
             confirmAuthPasswordInput.type = 'password';
+            confirmAuthPasswordInput.value = '';
+        }
+        // Start with an empty email field when switching modes
+        if (authEmailInput) {
+            authEmailInput.value = '';
         }
 if (toggleAuthPasswordBtn) {
     toggleAuthPasswordBtn.textContent = '👁';
