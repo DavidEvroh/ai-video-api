@@ -423,6 +423,22 @@ if (dobDate > today) {
     authDateOfBirthInput.focus();
     return;
 }
+let age = today.getFullYear() - dobDate.getFullYear();
+
+const birthdayHasNotOccurred =
+    today.getMonth() < dobDate.getMonth() ||
+    (
+        today.getMonth() === dobDate.getMonth() &&
+        today.getDate() < dobDate.getDate()
+    );
+if (birthdayHasNotOccurred) {
+    age--;
+}
+if (age < 18) {
+    alert("You must be at least 18 years old to create an account.");
+    authDateOfBirthInput.focus();
+    return;
+}
 const missingPasswordRequirements = [
         {
             test: password.length >= 8,
