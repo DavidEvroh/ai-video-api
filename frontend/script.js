@@ -32,6 +32,26 @@ const authMiddleNameInput = document.getElementById('authMiddleName');
 const authUsernameInput = document.getElementById('authUsername');
 const authPhoneInput = document.getElementById('authPhone');
 const authDateOfBirthInput = document.getElementById('authDateOfBirth');
+// Automatically format Date of Birth as DD/MM/YYYY
+if (authDateOfBirthInput) {
+    authDateOfBirthInput.addEventListener('input', () => {
+        const digits = authDateOfBirthInput.value
+            .replace(/\D/g, '')
+            .slice(0, 8);
+        let formattedDate = digits;
+        if (digits.length > 4) {
+            formattedDate =
+                digits.slice(0, 2) + '/' +
+                digits.slice(2, 4) + '/' +
+                digits.slice(4);
+        } else if (digits.length > 2) {
+            formattedDate =
+                digits.slice(0, 2) + '/' +
+                digits.slice(2);
+        }
+        authDateOfBirthInput.value = formattedDate;
+    });
+}
 const registrationAgreements = document.getElementById('registrationAgreements');
 const notRobotCheckbox = document.getElementById('notRobotCheckbox');
 const agreeTermsCheckbox = document.getElementById('agreeTermsCheckbox');
