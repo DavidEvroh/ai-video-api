@@ -358,9 +358,7 @@ if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
         const input = document.getElementById('confirmAuthPassword');
         const showing = input.type === 'text';
         input.type = showing ? 'password' : 'text';
-        toggleConfirmAuthPasswordBtn.textContent = showing
-            ? '👁'
-            : 'Hide Password';
+        toggleConfirmAuthPasswordBtn.textContent = '👁';
         toggleConfirmAuthPasswordBtn.setAttribute(
             'aria-label',
             showing
