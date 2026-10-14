@@ -355,12 +355,26 @@ authPasswordInput.style.display = '';
     });
 }
 if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
-    toggleConfirmAuthPasswordBtn.addEventListener('click', () => {
-        const showing = confirmAuthPasswordInput.type === 'text';
-        confirmAuthPasswordInput.type = showing ? 'password' : 'text';
+    toggleConfirmAuthPasswordBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        const input = document.getElementById('confirmAuthPassword');
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
         toggleConfirmAuthPasswordBtn.textContent = showing
-            ? 'Show Password'
+            ? '👁'
             : 'Hide Password';
+        toggleConfirmAuthPasswordBtn.setAttribute(
+            'aria-label',
+            showing
+                ? 'Show confirmation password'
+                : 'Hide confirmation password'
+        );
+        toggleConfirmAuthPasswordBtn.setAttribute(
+            'title',
+            showing
+                ? 'Show confirmation password'
+                : 'Hide confirmation password'
+        );
     });
 }
 // 🔐 Authentication Execution Engine (Supabase Auth Gateway)
