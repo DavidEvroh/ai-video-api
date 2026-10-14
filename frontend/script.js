@@ -60,6 +60,11 @@ const verificationEmailInput = document.getElementById('verificationEmail');
 const verificationCodeInput = document.getElementById('verificationCode');
 const verifyEmailBtn = document.getElementById('verifyEmailBtn');
 const confirmAuthPasswordInput = document.getElementById('confirmAuthPassword');
+console.log(
+    "Confirm password elements:",
+    confirmAuthPasswordInput,
+    document.getElementById('toggleConfirmAuthPassword')
+);
 const confirmPasswordField = document.getElementById('confirmPasswordField');
 const authPasswordInput = document.getElementById('authPassword');
 const passwordRequirements = document.getElementById('passwordRequirements');
@@ -125,21 +130,29 @@ if (toggleAuthPasswordBtn && authPasswordInput) {
     });
 }
 const toggleConfirmAuthPasswordBtn = document.getElementById('toggleConfirmAuthPassword');
-/* 👁️ Show or hide the confirmation password */
+/* 👁️ Show or hide ONLY the confirmation password */
 if (toggleConfirmAuthPasswordBtn && confirmAuthPasswordInput) {
-    toggleConfirmAuthPasswordBtn.addEventListener('click', () => {
-        const isHidden = confirmAuthPasswordInput.type === 'password';
-        confirmAuthPasswordInput.type = isHidden ? 'text' : 'password';
-        toggleConfirmAuthPasswordBtn.textContent = '👁';
-        toggleConfirmAuthPasswordBtn.setAttribute(
+    toggleConfirmAuthPasswordBtn.onclick = function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const showPassword =
+            confirmAuthPasswordInput.type === 'password';
+        confirmAuthPasswordInput.type =
+            showPassword ? 'text' : 'password';
+        this.textContent = showPassword ? 'Hide Password' : 'Show Password';
+        this.setAttribute(
             'aria-label',
-            isHidden ? 'Hide confirmation password' : 'Show confirmation password'
+            showPassword
+                ? 'Hide confirmation password'
+                : 'Show confirmation password'
         );
-        toggleConfirmAuthPasswordBtn.setAttribute(
+        this.setAttribute(
             'title',
-            isHidden ? 'Hide confirmation password' : 'Show confirmation password'
+            showPassword
+                ? 'Hide confirmation password'
+                : 'Show confirmation password'
         );
-    });
+    };
 }
 const resetPasswordPanel = document.getElementById('resetPasswordPanel');
 const newPasswordInput = document.getElementById('newPasswordInput');
