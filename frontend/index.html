@@ -91,13 +91,16 @@
             z-index: 200; display: none;
         }
         .auth-box {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%; max-width: 380px;
-            border: 1px solid #334155;
-            position: relative;
-        }
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%; max-width: 380px;
+    border: 1px solid #334155;
+    position: relative;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
         .auth-box h2 { margin-top: 0; margin-bottom: 20px; font-size: 1.5rem; }
         .auth-box input {
             width: 100%; padding: 12px; margin-bottom: 12px;
