@@ -30,6 +30,27 @@ const authFirstNameInput = document.getElementById('authFirstName');
 const authLastNameInput = document.getElementById('authLastName');
 const authMiddleNameInput = document.getElementById('authMiddleName');
 const authUsernameInput = document.getElementById('authUsername');
+/* Automatically capitalize the first letter of name and username fields */
+[
+    authFirstNameInput,
+    authMiddleNameInput,
+    authLastNameInput,
+    authUsernameInput
+].forEach(input => {
+    if (!input) return;
+    input.addEventListener('input', () => {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const value = input.value;
+        input.value = value.replace(
+            /^([a-z])/,
+            letter => letter.toUpperCase()
+        );
+        if (start !== null && end !== null) {
+            input.setSelectionRange(start, end);
+        }
+    });
+});
 const authPhoneInput = document.getElementById('authPhone');
 const authDateOfBirthInput = document.getElementById('authDateOfBirth');
 // Automatically format Date of Birth as DD/MM/YYYY
@@ -386,6 +407,13 @@ if (!lastName) {
         authUsernameInput.focus();
         return;
     }
+if (!/^[A-Za-z][A-Za-z0-9]*$/.test(username)) {
+    alert(
+        "Your username must start with a letter and contain only letters and numbers. No spaces or symbols are allowed."
+    );
+    authUsernameInput.focus();
+    return;
+}
     if (!phone) {
         alert("Please enter your phone number.");
         authPhoneInput.focus();
