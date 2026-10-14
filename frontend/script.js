@@ -319,11 +319,33 @@ if (!lastName) {
         authDateOfBirthInput.focus();
         return;
     }
-    if (new Date(dateOfBirth + "T00:00:00") > new Date()) {
-        alert("Your date of birth cannot be in the future.");
-        authDateOfBirthInput.focus();
-        return;
-    }
+    const dobMatch = dateOfBirth.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+if (!dobMatch) {
+    alert("Please enter your date of birth as DD/MM/YYYY.");
+    authDateOfBirthInput.focus();
+    return;
+}
+const day = Number(dobMatch[1]);
+const month = Number(dobMatch[2]);
+const year = Number(dobMatch[3]);
+const dobDate = new Date(year, month - 1, day);
+dobDate.setHours(0, 0, 0, 0);
+if (
+    dobDate.getFullYear() !== year ||
+    dobDate.getMonth() !== month - 1 ||
+    dobDate.getDate() !== day
+) {
+    alert("Please enter a valid calendar date.");
+    authDateOfBirthInput.focus();
+    return;
+}
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+if (dobDate > today) {
+    alert("Your date of birth cannot be in the future.");
+    authDateOfBirthInput.focus();
+    return;
+}
     if (password.length < 8) {
         alert("Your password must contain at least 8 characters.");
         authPasswordInput.focus();
