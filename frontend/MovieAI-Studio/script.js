@@ -79,22 +79,44 @@ function autoSaveMovie() {
     );
 }
 async function checkMovieStudioSession() {
-    const { data, error } =
-        await movieSupabase.auth.getSession();
-    if (error) {
-        console.error("MovieAI session check failed:", error.message);
-        return;
-    }
-    if (data.session) {
-        console.log(
-            "MovieAI Studio session detected:",
-            data.session.user.email
+    try {
+        const { data, error } =
+            await movieSupabase.auth.getSession();
+        if (error) {
+            console.error(
+                "MovieAI session check failed:",
+                error.message
+            );
+            window.location.replace(
+                "https://ai-video-api-02om.onrender.com/"
+            );
+            return;
+        }
+        if (data.session) {
+            console.log(
+                "MovieAI Studio session detected:",
+                data.session.user.email
+            );
+        } else {
+            console.log(
+                "No active session. Redirecting to sign in."
+            );
+            window.location.replace(
+                "https://ai-video-api-02om.onrender.com/"
+            );
+        }
+    } catch (error) {
+        console.error(
+            "MovieAI session check failed:",
+            error
         );
-    } else {
-        console.log("No active MovieAI Studio session detected.");
+        window.location.replace(
+            "https://ai-video-api-02om.onrender.com/"
+        );
     }
 }
 checkMovieStudioSession();
+
 let savedStage =
     localStorage.getItem("movieStage") || "movieCreator";
 const createMovieBtn =
