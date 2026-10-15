@@ -76,21 +76,23 @@ createMovieBtn.addEventListener(
 function startMovieApp() {
     const savedMovie =
         localStorage.getItem("movieProject");
-if (savedMovie) {
-    movieProject = JSON.parse(savedMovie);
-    if (!movieProject.sceneDraft) {
-        movieProject.sceneDraft = {
-            title: "",
-            location: "",
-            time: "Morning",
-            characters: "",
-            action: "",
-            dialogue: "",
-            camera: ""
-        };
+    if (savedMovie) {
+        movieProject = JSON.parse(savedMovie);
+        if (!movieProject.sceneDraft) {
+            movieProject.sceneDraft = {
+                title: "",
+                location: "",
+                time: "Morning",
+                characters: "",
+                action: "",
+                dialogue: "",
+                camera: ""
+            };
+        }
+        showResumeChoice();
+    } else {
+        showMovieCreator();
     }
-    showResumeChoice();
-}
 }
 function resumeMovieProject() {
     if (savedStage === "characterStudio") {
