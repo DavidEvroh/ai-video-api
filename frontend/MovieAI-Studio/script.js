@@ -1,3 +1,16 @@
+const SUPABASE_URL = "https://pmaktenhccpkovasktng.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_vsnuOHOVnNYyPMWeosz_Ww_TKk20xkM";
+const movieSupabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        }
+    }
+);
 let editingSceneIndex = null;
 let movieProject = {
     title: "",
@@ -65,6 +78,23 @@ function autoSaveMovie() {
         JSON.stringify(movieProject)
     );
 }
+async function checkMovieStudioSession() {
+    const { data, error } =
+        await movieSupabase.auth.getSession();
+    if (error) {
+        console.error("MovieAI session check failed:", error.message);
+        return;
+    }
+    if (data.session) {
+        console.log(
+            "MovieAI Studio session detected:",
+            data.session.user.email
+        );
+    } else {
+        console.log("No active MovieAI Studio session detected.");
+    }
+}
+checkMovieStudioSession();
 let savedStage =
     localStorage.getItem("movieStage") || "movieCreator";
 const createMovieBtn =
