@@ -12,6 +12,7 @@ const movieSupabase = window.supabase.createClient(
     }
 );
 let editingSceneIndex = null;
+let editingCharacterIndex = null;
 let movieProject = {
     title: "",
     idea: "",
@@ -522,45 +523,52 @@ if (!movieProject.characterDraft) {
         });
     document
         .getElementById("addCharacterBtn")
-        .addEventListener("click", function() {
-            const name =
-                document.getElementById("characterName").value.trim();
-            if (name === "") {
-                alert("Please enter a character name.");
-                return;
-            }
-            const character = {
-                name: name,
-                role:
-                    document.getElementById("characterRole").value,
-                age:
-                    document.getElementById("characterAge").value,
-                personality:
-                    document.getElementById("characterPersonality").value.trim(),
-                appearance:
-                    document.getElementById("characterAppearance").value.trim(),
-                description:
-                    document.getElementById("characterDescription").value.trim()
-            };
-            movieProject.characters.push(character);
-            displayCharacters();
-autoSaveMovie();
- // Clear the unfinished character draft
-            movieProject.characterDraft = {
-                name: "",
-                role: "Main Protagonist",
-                age: "",
-                personality: "",
-                appearance: "",
-                description: ""
-            };
-            autoSaveMovie();
-            document.getElementById("characterName").value = "";
-            document.getElementById("characterAge").value = "";
-            document.getElementById("characterPersonality").value = "";
-            document.getElementById("characterAppearance").value = "";
-            document.getElementById("characterDescription").value = "";
-        });
+.addEventListener("click", function() {
+    const name =
+        document.getElementById("characterName").value.trim();
+    if (name === "") {
+        alert("Please enter a character name.");
+        return;
+    }
+    const character = {
+        name: name,
+        role: document.getElementById("characterRole").value,
+        age: document.getElementById("characterAge").value,
+        personality:
+            document.getElementById("characterPersonality").value.trim(),
+        appearance:
+            document.getElementById("characterAppearance").value.trim(),
+        description:
+            document.getElementById("characterDescription").value.trim()
+    };
+    if (editingCharacterIndex !== null) {
+        movieProject.characters[editingCharacterIndex] = character;
+        editingCharacterIndex = null;
+        alert("Character changes saved successfully!");
+    } else {
+        movieProject.characters.push(character);
+        alert("Character added successfully!");
+    }
+    displayCharacters();
+    autoSaveMovie();
+    movieProject.characterDraft = {
+        name: "",
+        role: "Main Protagonist",
+        age: "",
+        personality: "",
+        appearance: "",
+        description: ""
+    };
+    autoSaveMovie();
+    document.getElementById("characterName").value = "";
+    document.getElementById("characterRole").value = "Main Protagonist";
+    document.getElementById("characterAge").value = "";
+    document.getElementById("characterPersonality").value = "";
+    document.getElementById("characterAppearance").value = "";
+    document.getElementById("characterDescription").value = "";
+    document.getElementById("addCharacterBtn").textContent =
+        "Add Character ➕";
+});
     document
         .getElementById("continueScenesBtn")
         .addEventListener("click", function() {
@@ -605,9 +613,53 @@ function displayCharacters() {
                     <strong>Description:</strong>
                     ${character.description || "Not specified"}
                 </p>
+                <button
+                    class="editCharacterBtn"
+                    data-index="${index}"
+                >
+                    ✏️ Edit Character
+                </button>
             </div>
         `;
     });
+    document.querySelectorAll(".editCharacterBtn").forEach(
+        function(button) {
+            button.addEventListener("click", function() {
+                const index = Number(this.dataset.index);
+                const character = movieProject.characters[index];
+
+                if (!character) {
+                    alert("Character not found.");
+                    return;
+                }
+                editingCharacterIndex = index;
+                document.getElementById("characterName").value =
+                    character.name || "";
+                document.getElementById("characterRole").value =
+                    character.role || "Main Protagonist";
+                document.getElementById("characterAge").value =
+                    character.age || "";
+                document.getElementById("characterPersonality").value =
+                    character.personality || "";
+                document.getElementById("characterAppearance").value =
+                    character.appearance || "";
+                document.getElementById("characterDescription").value =
+                    character.description || "";
+                movieProject.characterDraft = {
+                    name: character.name || "",
+                    role: character.role || "Main Protagonist",
+                    age: character.age || "",
+                    personality: character.personality || "",
+                    appearance: character.appearance || "",
+                    description: character.description || ""
+                };
+                autoSaveMovie();
+                document.getElementById("addCharacterBtn").textContent =
+                    "💾 Save Character Changes";
+                document.getElementById("characterName").focus();
+            });
+        }
+    );
 }
 function showSceneStudio() {
     document.querySelector(".hero").innerHTML = `
