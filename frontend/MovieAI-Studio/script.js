@@ -694,6 +694,17 @@ document
         showCharacterStudio();
     });
 // Restore unfinished scene information
+if (!movieProject.sceneDraft) {
+    movieProject.sceneDraft = {
+        title: "",
+        location: "",
+        time: "Morning",
+        characters: "",
+        action: "",
+        dialogue: "",
+        camera: ""
+    };
+}
 document.getElementById("sceneTitle").value =
     movieProject.sceneDraft.title || "";
 document.getElementById("sceneLocation").value =
