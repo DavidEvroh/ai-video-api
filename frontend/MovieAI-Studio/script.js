@@ -371,6 +371,9 @@ localStorage.setItem(
 function showCharacterStudio() {
     document.querySelector(".hero").innerHTML = `
         <h2>👤 Character Studio</h2>
+<button id="backToMovieCreatorBtn">
+    ⬅️ Back to Create Your Movie
+</button>
         <p>
             Create the characters that will appear in your movie.
         </p>
@@ -445,6 +448,16 @@ function showCharacterStudio() {
             Continue to Scene Studio 🎞️
         </button>
     `;
+document
+    .getElementById("backToMovieCreatorBtn")
+    .addEventListener("click", function() {
+        autoSaveMovie();
+        localStorage.setItem(
+            "movieStage",
+            "movieCreator"
+        );
+        showMovieCreator();
+    });
 // Restore unfinished character information
     document.getElementById("characterName").value =
         movieProject.characterDraft.name || "";
@@ -654,10 +667,22 @@ function showSceneStudio() {
 </button>
         <h3>🎞️ Your Scenes</h3>
         <div id="sceneList"></div>
-        <button id="continueStoryBtn">
-            Continue to Story & Script Studio 📝
-        </button>
+<button id="backToCharactersBtn">
+    ← Go Back to Characters
+</button>
+<button id="continueStoryBtn">
+    Continue to Story & Script Studio 📝
+</button>   
     `;
+document
+    .getElementById("backToCharactersBtn")
+    .addEventListener("click", function() {
+        localStorage.setItem(
+            "movieStage",
+            "characterStudio"
+        );
+        showCharacterStudio();
+    });
 // Restore unfinished scene information
 document.getElementById("sceneTitle").value =
     movieProject.sceneDraft.title || "";
@@ -861,11 +886,18 @@ function displayScenes() {
     document
         .querySelectorAll(".deleteSceneBtn")
         .forEach(function(button) {
-            button.addEventListener("click", function() {
-                const index =
-                    Number(this.dataset.index);
-editingSceneIndex = index;
-                movieProject.scenes.splice(index, 1);
+button.addEventListener("click", function() {
+    const confirmed = confirm(
+        "Are you sure you want to delete this scene?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+    const index =
+        Number(this.dataset.index);
+    editingSceneIndex = index;
+    movieProject.scenes.splice(index, 1);
                 autoSaveMovie();
                 displayScenes();
             });
@@ -1190,6 +1222,9 @@ function generateMovieScene(sceneNumber) {
     }
     document.querySelector(".hero").innerHTML = `
         <h2>🎬 Scene Production Studio</h2>
+<button id="backToStoryStudioBtn">
+    ⬅️ Back to Story & Script Studio
+</button>
         <h3>🎞️ Scene ${sceneNumber}: ${scene.title}</h3>
         <p>
             <strong>Location:</strong>
@@ -1265,6 +1300,15 @@ function generateMovieScene(sceneNumber) {
 </button>
 <div id="sceneProductionResult"></div>
     `;
+document
+    .getElementById("backToStoryStudioBtn")
+    .addEventListener("click", function() {
+        localStorage.setItem(
+            "movieStage",
+            "storyStudio"
+        );
+        showStoryStudio();
+    });
 // Restore saved character and audio prompts
 const savedProduction = movieProject.production.find(
     item => item.sceneNumber === sceneNumber
