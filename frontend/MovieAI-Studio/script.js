@@ -459,6 +459,16 @@ document
         showMovieCreator();
     });
 // Restore unfinished character information
+if (!movieProject.characterDraft) {
+    movieProject.characterDraft = {
+        name: "",
+        role: "Main Protagonist",
+        age: "",
+        personality: "",
+        appearance: "",
+        description: ""
+    };
+}
     document.getElementById("characterName").value =
         movieProject.characterDraft.name || "";
     document.getElementById("characterRole").value =
