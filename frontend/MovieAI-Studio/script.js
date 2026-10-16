@@ -1640,7 +1640,9 @@ function saveStory() {
         alert("Please enter your story outline.");
         return;
     }
-    showFinalMoviePlan();
+    autoSaveMovie();
+    localStorage.setItem("movieStage", "storyStudio");
+    alert("Story and screenplay saved successfully!");
 }
 function showFinalMoviePlan() {
     document.querySelector(".hero").innerHTML = `
