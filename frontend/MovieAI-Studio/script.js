@@ -1332,12 +1332,18 @@ function generateMovieScene(sceneNumber) {
             (character.personality || "Not specified");
     })
     .join("\n\n")}</textarea>
-        <h3>🎥 Visual Description</h3>
-        <textarea
-            id="sceneVisualPrompt"     
+<h3>🎥 Visual Description</h3>
+<textarea
+    id="sceneVisualPrompt"
     readonly
-    placeholder="Describe how the characters should look in this scene..."
->${scene.action}</textarea>
+    placeholder="AI-generated visual description for this scene..."
+>${`Scene: ${scene.title || "Untitled Scene"}
+Location: ${scene.location || "Not specified"}
+Time: ${scene.time || "Not specified"}
+Action: ${scene.action || "Describe the scene action"}
+Visual Style: ${movieProject.style || "Cinematic"}
+Character Consistency: Keep each character's appearance consistent with the saved character descriptions.
+Visual Quality: Clear composition, detailed surroundings, natural movement, and cinematic lighting.`}</textarea>
         <h3>📷 Camera Direction</h3>
         <textarea
             id="sceneCameraPrompt"
@@ -1390,8 +1396,9 @@ if (savedProduction) {
 document.getElementById("sceneCharacterPrompt").value =
     savedProduction.characterPrompt ||
     document.getElementById("sceneCharacterPrompt").value;
-    document.getElementById("sceneVisualPrompt").value =
-        savedProduction.visualPrompt || scene.action || "";
+document.getElementById("sceneVisualPrompt").value =
+    savedProduction.visualPrompt ||
+    document.getElementById("sceneVisualPrompt").value;
     document.getElementById("sceneCameraPrompt").value =
         savedProduction.cameraPrompt || scene.camera || "";
     document.getElementById("sceneDialoguePrompt").value =
@@ -1677,8 +1684,6 @@ if (
         .click();
 }
 }
-function saveStory() {
-    movieProject.script.outline =
         document.getElementById("storyOutline").value.trim();
     movieProject.script.act1 =
         document.getElementById("act1").value.trim();
@@ -1695,7 +1700,6 @@ function saveStory() {
     autoSaveMovie();
     localStorage.setItem("movieStage", "storyStudio");
     alert("Story and screenplay saved successfully!");
-}
 function showFinalMoviePlan() {
     document.querySelector(".hero").innerHTML = `
         <h2>🎬 ${movieProject.title}</h2>
