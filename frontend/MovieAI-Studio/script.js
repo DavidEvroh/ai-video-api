@@ -1684,6 +1684,8 @@ if (
         .click();
 }
 }
+function saveStory() {
+    movieProject.script.outline =
         document.getElementById("storyOutline").value.trim();
     movieProject.script.act1 =
         document.getElementById("act1").value.trim();
@@ -1700,6 +1702,7 @@ if (
     autoSaveMovie();
     localStorage.setItem("movieStage", "storyStudio");
     alert("Story and screenplay saved successfully!");
+}
 function showFinalMoviePlan() {
     document.querySelector(".hero").innerHTML = `
         <h2>🎬 ${movieProject.title}</h2>
