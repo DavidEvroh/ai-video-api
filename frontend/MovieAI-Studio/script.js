@@ -1319,22 +1319,49 @@ function generateMovieScene(sceneNumber) {
     }
 // Build consistent character references for this scene.
     const sceneCharacterNames = String(scene.characters || "")
-        .toLowerCase();
-    const characterPromptText = movieProject.characters
-        .filter(function(character) {
-            return character.name &&
-                sceneCharacterNames.includes(
-                    character.name.toLowerCase()
-                );
+        .split(",")
+        .map(function(name) {
+            return name.trim().toLowerCase();
         })
+        .filter(Boolean);
+    const savedCharacters = movieProject.characters || [];
+    const matchedCharacters = savedCharacters.filter(
+        function(character) {
+            const savedName = String(character.name || "")
+                .trim()
+                .toLowerCase();
+            return savedName &&
+                sceneCharacterNames.includes(savedName);
+        }
+    );
+    const characterPromptText = matchedCharacters
         .map(function(character) {
             return `${character.name} — ${character.role || "Character"}.
+Age: ${character.age || "Use the saved character profile"}.
 Appearance: ${character.appearance || "Use the saved character reference"}.
 Personality: ${character.personality || "Keep behaviour consistent"}.
-Continuity: Preserve the same face, hairstyle, age, clothing and defining features in every shot.`;
+IDENTITY CONTINUITY:
+Preserve this character's established face, skin tone, age, hairstyle, and defining features across every shot.
+COSTUME CONTINUITY:
+Keep the outfit consistent within the same scene. Change clothing between scenes only when justified by the story, location, weather, time, damage, or injuries.`;
         })
-        .join("\n\n") ||
-        "Use the saved character references when available. Keep character appearances consistent.";
+        .join("\n\n");
+    const missingCharacterNames = sceneCharacterNames.filter(
+        function(sceneName) {
+            return !matchedCharacters.some(function(character) {
+                return String(character.name || "")
+                    .trim()
+                    .toLowerCase() === sceneName;
+            });
+        }
+    );
+    const missingCharacterNote = missingCharacterNames.length
+        ? `\n\nCHARACTER PROFILES NOT FOUND:\n${missingCharacterNames.join(", ")}. Do not invent their appearance. Add or correct their saved Character Studio profiles to ensure consistent identity.`
+        : "";
+    const finalCharacterPrompt =
+        (characterPromptText ||
+            "No matching saved character profiles were found. Check Character Studio.") +
+        missingCharacterNote;
     // Build a richer cinematic visual prompt.
     const visualPromptText = `SCENE: ${scene.title || "Untitled Scene"}
 LOCATION: ${scene.location || "Not specified"}
@@ -1342,7 +1369,7 @@ TIME: ${scene.time || "Not specified"}
 ACTION: ${scene.action || "Action not specified"}
 VISUAL STYLE: ${movieProject.style || "Cinematic"}
 CHARACTER CONTINUITY:
-${characterPromptText}
+${finalCharacterPrompt}
 CINEMATOGRAPHY:
 Use deliberate cinematic framing, clear subject focus, layered foreground and background, believable movement, and shot composition that supports the story.
 LIGHTING AND COLOUR:
