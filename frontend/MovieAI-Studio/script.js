@@ -1160,6 +1160,30 @@ function generateAIScript() {
     movieProject.script.act1 = act1;
     movieProject.script.act2 = act2;
     movieProject.script.act3 = act3;
+// Create real scene records when the screenplay has fewer than three scenes.
+    const firstScene = movieProject.scenes[0] || {};
+    if (!movieProject.scenes[1]) {
+        movieProject.scenes[1] = {
+            title: "Conflict",
+            location: firstScene.location || "Not specified",
+            time: firstScene.time || "Not specified",
+            characters: firstScene.characters || "",
+            action: act2 || "The main conflict begins.",
+            dialogue: "",
+            camera: "Cinematic camera movement."
+        };
+    }
+    if (!movieProject.scenes[2]) {
+        movieProject.scenes[2] = {
+            title: "Resolution",
+            location: firstScene.location || "Not specified",
+            time: firstScene.time || "Not specified",
+            characters: firstScene.characters || "",
+            action: act3 || "The story reaches its conclusion.",
+            dialogue: "",
+            camera: "Cinematic final shot."
+        };
+    }
     autoSaveMovie();
     const scriptContainer =
         document.getElementById("generatedScript");
