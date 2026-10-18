@@ -1293,6 +1293,45 @@ function generateMovieScene(sceneNumber) {
         alert("This scene doesn't exist.");
         return;
     }
+// Build consistent character references for this scene.
+    const sceneCharacterNames = String(scene.characters || "")
+        .toLowerCase();
+    const characterPromptText = movieProject.characters
+        .filter(function(character) {
+            return character.name &&
+                sceneCharacterNames.includes(
+                    character.name.toLowerCase()
+                );
+        })
+        .map(function(character) {
+            return `${character.name} — ${character.role || "Character"}.
+Appearance: ${character.appearance || "Use the saved character reference"}.
+Personality: ${character.personality || "Keep behaviour consistent"}.
+Continuity: Preserve the same face, hairstyle, age, clothing and defining features in every shot.`;
+        })
+        .join("\n\n") ||
+        "Use the saved character references when available. Keep character appearances consistent.";
+    // Build a richer cinematic visual prompt.
+    const visualPromptText = `SCENE: ${scene.title || "Untitled Scene"}
+LOCATION: ${scene.location || "Not specified"}
+TIME: ${scene.time || "Not specified"}
+ACTION: ${scene.action || "Action not specified"}
+VISUAL STYLE: ${movieProject.style || "Cinematic"}
+CHARACTER CONTINUITY:
+${characterPromptText}
+CINEMATOGRAPHY:
+Use deliberate cinematic framing, clear subject focus, layered foreground and background, believable movement, and shot composition that supports the story.
+LIGHTING AND COLOUR:
+Use lighting appropriate to the location and time of day. Maintain a consistent colour grade and believable shadows. For cyberpunk scenes, use controlled neon highlights, atmospheric haze and contrasting cool and warm light where appropriate.
+WORLD CONTINUITY:
+Preserve the established location layout, important props, costumes, weather and time of day. Do not introduce unexplained changes between shots.
+QUALITY:
+Detailed environments, natural body movement, coherent spatial relationships, stable visual continuity and a polished cinematic finish.
+IMPORTANT:
+Treat the saved scene and character descriptions as the source of truth. Do not invent conflicting character features or location details.`;
+    // Add a camera plan when the scene has no saved camera direction.
+    const cameraPromptText = scene.camera ||
+        `Cinematic establishing shot of ${scene.location || "the scene location"}, followed by a controlled tracking shot toward the main action. Use close-ups for important expressions, motivated camera movement, consistent screen direction and smooth transitions. Match the camera style to ${movieProject.style || "Cinematic"} visuals.`;
     document.querySelector(".hero").innerHTML = `
         <h2>🎬 Scene Production Studio</h2>
 <button id="backToStoryStudioBtn">
@@ -1316,40 +1355,19 @@ function generateMovieScene(sceneNumber) {
     id="sceneCharacterPrompt"
     readonly
     placeholder="Describe how the characters should look in this scene..."
->${movieProject.characters
-    .filter(function(character) {
-        return scene.characters
-            .toLowerCase()
-            .includes(character.name.toLowerCase());
-    })
-    .map(function(character) {
-        return character.name +
-            " — " +
-            character.role +
-            ". Appearance: " +
-            (character.appearance || "Not specified") +
-            ". Personality: " +
-            (character.personality || "Not specified");
-    })
-    .join("\n\n")}</textarea>
+>${characterPromptText}</textarea>
 <h3>🎥 Visual Description</h3>
 <textarea
     id="sceneVisualPrompt"
     readonly
     placeholder="AI-generated visual description for this scene..."
->${`Scene: ${scene.title || "Untitled Scene"}
-Location: ${scene.location || "Not specified"}
-Time: ${scene.time || "Not specified"}
-Action: ${scene.action || "Describe the scene action"}
-Visual Style: ${movieProject.style || "Cinematic"}
-Character Consistency: Keep each character's appearance consistent with the saved character descriptions.
-Visual Quality: Clear composition, detailed surroundings, natural movement, and cinematic lighting.`}</textarea>
-        <h3>📷 Camera Direction</h3>
+>${visualPromptText}</textarea>
+       <h3>📷 Camera Direction</h3>
         <textarea
             id="sceneCameraPrompt"
             readonly
             placeholder="Example: Slow camera movement toward Alex..."
-        >${scene.camera || ""}</textarea>
+        >${cameraPromptText}</textarea> 
         <h3>💬 Dialogue</h3>
         <textarea
             id="sceneDialoguePrompt"
@@ -1399,8 +1417,8 @@ document.getElementById("sceneCharacterPrompt").value =
 document.getElementById("sceneVisualPrompt").value =
     savedProduction.visualPrompt ||
     document.getElementById("sceneVisualPrompt").value;
-    document.getElementById("sceneCameraPrompt").value =
-        savedProduction.cameraPrompt || scene.camera || "";
+   document.getElementById("sceneCameraPrompt").value =
+        savedProduction.cameraPrompt || cameraPromptText;
     document.getElementById("sceneDialoguePrompt").value =
         savedProduction.dialoguePrompt || scene.dialogue || "";
     document.getElementById("sceneAudioPrompt").value =
