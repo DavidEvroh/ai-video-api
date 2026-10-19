@@ -73,10 +73,185 @@ if (!movieProject.sceneDraft) {
         camera: ""
     };
 }
-function autoSaveMovie() {
-    localStorage.setItem(   
+function getSavedMovieProjects() {
+    try {
+        const savedProjects =
+            localStorage.getItem("movieProjects");
+        const projects = savedProjects
+            ? JSON.parse(savedProjects)
+            : [];
+        return Array.isArray(projects) ? projects : [];
+    } catch (error) {
+        console.error(
+            "Could not load Movie Library:",
+            error
+        );
+        return [];
+    }
+}
+function showMovieLibrary() {
+    const projects = getSavedMovieProjects();
+    document.querySelector(".hero").innerHTML = `
+        <h2>🎬 My Movie Library</h2>
+        <p>Choose a saved movie to continue working.</p>
+        <button id="createLibraryMovieBtn">
+            ➕ Create New Movie
+        </button>
+        <div id="movieLibraryList"></div>
+    `;
+    const libraryList =
+        document.getElementById("movieLibraryList");
+    if (projects.length === 0) {
+        libraryList.innerHTML = `
+            <p>No saved movies yet. Create your first movie!</p>
+        `;
+    } else {
+        projects.forEach(function(project) {
+            const card = document.createElement("div");
+            card.className = "movie-library-card";
+            const title = document.createElement("h3");
+            title.textContent =
+                project.title || "Untitled Movie";
+            const idea = document.createElement("p");
+            idea.textContent =
+                project.idea || "No movie description yet.";
+            const openButton = document.createElement("button");
+            openButton.textContent = "▶️ Open Movie";
+openButton.addEventListener("click", function() {
+    // Load the selected movie.
+    movieProject = project;
+    // Restore this movie's saved stage.
+    savedStage = project.stage || "movieCreator";
+    localStorage.setItem(
+        "movieStage",
+        savedStage
+    );
+    // Restore this movie's saved scene number.
+    if (project.sceneNumber) {
+        localStorage.setItem(
+            "movieSceneNumber",
+            String(project.sceneNumber)
+        );
+    } else {
+        localStorage.removeItem("movieSceneNumber");
+    }
+    // Mark this movie as the active project.
+    localStorage.setItem(
+        "activeMovieProjectId",
+        project.id
+    );
+    localStorage.setItem(
         "movieProject",
         JSON.stringify(movieProject)
+    );
+    showResumeChoice();
+});
+            card.appendChild(title);
+            card.appendChild(idea);
+            card.appendChild(openButton);
+            libraryList.appendChild(card);
+        });
+    }
+    document
+        .getElementById("createLibraryMovieBtn")
+        .addEventListener("click", function() {
+            movieProject = {
+                id: "movie_" + Date.now() + "_" +
+                    Math.random().toString(36).slice(2, 8),
+                title: "",
+                idea: "",
+                genre: "",
+                type: "",
+                length: "",
+                style: "",
+                characters: [],
+                characterDraft: {
+                    name: "",
+                    role: "Main Protagonist",
+                    age: "",
+                    personality: "",
+                    appearance: "",
+                    description: ""
+                },
+                scenes: [],
+                sceneDraft: {
+                    title: "",
+                    location: "",
+                    time: "Morning",
+                    characters: "",
+                    action: "",
+                    dialogue: "",
+                    camera: ""
+                },
+                production: [],
+                script: {
+                    outline: "",
+                    act1: "",
+                    act2: "",
+                    act3: "",
+                    screenplay: ""
+                }
+            };
+            savedStage = "movieCreator";
+            localStorage.setItem(
+                "movieStage",
+                "movieCreator"
+            );
+            localStorage.removeItem("movieSceneNumber");
+            autoSaveMovie();
+            showMovieCreator();
+        });
+}
+function autoSaveMovie() {
+    // Give every movie its own permanent ID.
+    if (!movieProject.id) {
+        movieProject.id =
+            "movie_" +
+            Date.now() +
+            "_" +
+            Math.random().toString(36).slice(2, 8);
+    }
+// Save the current studio stage for this movie.
+movieProject.stage = savedStage;
+localStorage.setItem(
+    "movieStage",
+    savedStage
+);
+    const currentSceneNumber =
+        localStorage.getItem("movieSceneNumber");
+    movieProject.sceneNumber =
+        currentSceneNumber
+            ? Number(currentSceneNumber)
+            : null;
+    movieProject.lastUpdated =
+        new Date().toISOString();
+    // Keep the legacy save for compatibility.
+    localStorage.setItem(
+        "movieProject",
+        JSON.stringify(movieProject)
+    );
+    // Load the Movie Library.
+    const projects = getSavedMovieProjects();
+    const projectIndex = projects.findIndex(
+        function(project) {
+            return project.id === movieProject.id;
+        }
+    );
+    // Add this movie or update only this movie.
+    if (projectIndex === -1) {
+        projects.push({ ...movieProject });
+    } else {
+        projects[projectIndex] = {
+            ...movieProject
+        };
+    }
+    localStorage.setItem(
+        "movieProjects",
+        JSON.stringify(projects)
+    );
+    localStorage.setItem(
+        "activeMovieProjectId",
+        movieProject.id
     );
 }
 async function checkMovieStudioSession() {
@@ -127,49 +302,82 @@ createMovieBtn.addEventListener(
     startMovieApp
 );
 function startMovieApp() {
+    const projects = getSavedMovieProjects();
+    if (projects.length > 0) {
+        showMovieLibrary();
+        return;
+    }
+    // Support an older project saved before the Library existed.
     const savedMovie =
         localStorage.getItem("movieProject");
     if (savedMovie) {
-        movieProject = JSON.parse(savedMovie);
-        if (!movieProject.sceneDraft) {
-            movieProject.sceneDraft = {
-                title: "",
-                location: "",
-                time: "Morning",
-                characters: "",
-                action: "",
-                dialogue: "",
-                camera: ""
-            };
+        try {
+            movieProject = JSON.parse(savedMovie);
+            if (!movieProject.sceneDraft) {
+                movieProject.sceneDraft = {
+                    title: "",
+                    location: "",
+                    time: "Morning",
+                    characters: "",
+                    action: "",
+                    dialogue: "",
+                    camera: ""
+                };
+            }
+            autoSaveMovie();
+            showMovieLibrary();
+        } catch (error) {
+            console.error(
+                "Could not load the saved movie:",
+                error
+            );
+            showMovieCreator();
         }
-        showResumeChoice();
     } else {
         showMovieCreator();
     }
 }
 function resumeMovieProject() {
+    // Read progress from the selected movie.
+savedStage =
+    movieProject.stage || "movieCreator";
+    // Restore this movie's scene number.
+    if (movieProject.sceneNumber) {
+        localStorage.setItem(
+            "movieSceneNumber",
+            String(movieProject.sceneNumber)
+        );
+    } else {
+        localStorage.removeItem("movieSceneNumber");
+    }
+    // Restore the selected movie as the active project.
+    localStorage.setItem(
+        "activeMovieProjectId",
+        movieProject.id
+    );
+    localStorage.setItem(
+        "movieStage",
+        savedStage
+    );
+    localStorage.setItem(
+        "movieProject",
+        JSON.stringify(movieProject)
+    );
     if (savedStage === "characterStudio") {
         showCharacterStudio();
-    }
-    else if (savedStage === "sceneStudio") {
+    } else if (savedStage === "sceneStudio") {
         showSceneStudio();
-    }
-    else if (savedStage === "storyStudio") {
+    } else if (savedStage === "storyStudio") {
         showStoryStudio();
-    }
-    else if (savedStage === "sceneProduction") {
-        const savedSceneNumber =
-            localStorage.getItem("movieSceneNumber");
-        if (savedSceneNumber) {
+    } else if (savedStage === "sceneProduction") {
+        if (movieProject.sceneNumber) {
             generateMovieScene(
-                Number(savedSceneNumber)
+                Number(movieProject.sceneNumber)
             );
-        }
-        else {
+        } else {
             showStoryStudio();
         }
-    }
-    else {
+    } else {
         showMovieCreator();
     }
 }
@@ -195,46 +403,51 @@ function showResumeChoice() {
     document
         .getElementById("newMovieBtn")
         .addEventListener("click", function() {
+// Save the current movie before starting another.
+autoSaveMovie();
+// Start a separate, empty movie project.
 movieProject = {
+    id: "movie_" + Date.now() + "_" +
+        Math.random().toString(36).slice(2, 8),
     title: "",
     idea: "",
     genre: "",
     type: "",
     length: "",
-    style: "",   
-characters: [],
-characterDraft: {
-    name: "",
-    role: "Main Protagonist",
-    age: "",
-    personality: "",
-    appearance: "",
-    description: ""
-},
-scenes: [],
-sceneDraft: {
-    title: "",
-    location: "",
-    time: "Morning",
-    characters: "",
-    action: "",
-    dialogue: "",
-    camera: ""
-},
-production: [],
-                script: {
-                    outline: "",
-                    act1: "",
-                    act2: "",
-                    act3: "",
-                    screenplay: ""
-                }
-            };
-            localStorage.removeItem("movieProject");
-            localStorage.removeItem("movieStage");
-            localStorage.removeItem("movieSceneNumber");
-            savedStage = "movieCreator";
-            showMovieCreator();
+    style: "",
+    characters: [],
+    characterDraft: {
+        name: "",
+        role: "Main Protagonist",
+        age: "",
+        personality: "",
+        appearance: "",
+        description: ""
+    },
+    scenes: [],
+    sceneDraft: {
+        title: "",
+        location: "",
+        time: "Morning",
+        characters: "",
+        action: "",
+        dialogue: "",
+        camera: ""
+    },
+    production: [],
+    script: {
+        outline: "",
+        act1: "",
+        act2: "",
+        act3: "",
+        screenplay: ""
+    }
+};
+savedStage = "movieCreator";
+localStorage.setItem("movieStage", "movieCreator");
+localStorage.removeItem("movieSceneNumber");
+autoSaveMovie();
+showMovieCreator();
         });
 }
 function showMovieCreator() {
@@ -361,13 +574,14 @@ function saveMovieDetails() {
     movieProject.length = document.getElementById("length").value;
 movieProject.style =
     document.getElementById("style").value;
-// Save the complete movie
-autoSaveMovie();
+// Save the movie's next stage.
 localStorage.setItem(
     "movieStage",
     "characterStudio"
 );
-    showCharacterStudio();
+savedStage = "characterStudio";
+autoSaveMovie();
+showCharacterStudio();
 }
 function showCharacterStudio() {
     document.querySelector(".hero").innerHTML = `
@@ -452,11 +666,12 @@ function showCharacterStudio() {
 document
     .getElementById("backToMovieCreatorBtn")
     .addEventListener("click", function() {
-        autoSaveMovie();
         localStorage.setItem(
             "movieStage",
             "movieCreator"
         );
+        savedStage = "movieCreator";
+        autoSaveMovie();
         showMovieCreator();
     });
 // Restore unfinished character information
@@ -580,7 +795,9 @@ localStorage.setItem(
     "movieStage",
     "sceneStudio"
 );
-            showSceneStudio();
+savedStage = "sceneStudio";
+autoSaveMovie();
+showSceneStudio();
         });
 }
 function displayCharacters() {
@@ -743,6 +960,8 @@ document
             "movieStage",
             "characterStudio"
         );
+        savedStage = "characterStudio";
+        autoSaveMovie();
         showCharacterStudio();
     });
 // Restore unfinished scene information
@@ -904,7 +1123,9 @@ localStorage.setItem(
     "movieStage",
     "storyStudio"
 );
-            showStoryStudio();
+savedStage = "storyStudio";
+autoSaveMovie();
+showStoryStudio();
         });
 }
 function displayScenes() {
@@ -1097,11 +1318,12 @@ ${movieProject.scenes.length > 0
 document
     .getElementById("backToSceneStudioBtn")
     .addEventListener("click", function() {
-        autoSaveMovie();
         localStorage.setItem(
             "movieStage",
             "sceneStudio"
         );
+        savedStage = "sceneStudio";
+        autoSaveMovie();
         showSceneStudio();
     });
 // Restore previously saved story and script
@@ -1117,24 +1339,24 @@ document.getElementById("screenplay").value =
     movieProject.script.screenplay || "";
 // Automatically save story fields while typing
 document.getElementById("storyOutline").addEventListener("input", function() {
-    movieProject.script.outline = this.value;
-    localStorage.setItem("movieProject", JSON.stringify(movieProject));
+ movieProject.script.outline = this.value;
+autoSaveMovie();
 });
 document.getElementById("act1").addEventListener("input", function() {
     movieProject.script.act1 = this.value;
-    localStorage.setItem("movieProject", JSON.stringify(movieProject));
+    autoSaveMovie();
 });
 document.getElementById("act2").addEventListener("input", function() {
     movieProject.script.act2 = this.value;
-    localStorage.setItem("movieProject", JSON.stringify(movieProject));
+    autoSaveMovie();
 });
 document.getElementById("act3").addEventListener("input", function() {
-    movieProject.script.act3 = this.value;
-    localStorage.setItem("movieProject", JSON.stringify(movieProject));
+     movieProject.script.act3 = this.value;
+autoSaveMovie();
 });
 document.getElementById("screenplay").addEventListener("input", function() {
     movieProject.script.screenplay = this.value;
-    localStorage.setItem("movieProject", JSON.stringify(movieProject));
+    autoSaveMovie();
 });
 document
     .getElementById("generateScriptBtn")
@@ -1317,6 +1539,8 @@ function generateMovieScene(sceneNumber) {
         alert("This scene doesn't exist.");
         return;
     }
+    savedStage = "sceneProduction";
+    autoSaveMovie();
 // Build consistent character references for this scene.
     const sceneCharacterNames = String(scene.characters || "")
         .split(",")
@@ -1455,6 +1679,8 @@ document
             "movieStage",
             "storyStudio"
         );
+        savedStage = "storyStudio";
+        autoSaveMovie();
         showStoryStudio();
     });
 // Restore saved character and audio prompts
@@ -1768,9 +1994,13 @@ function saveStory() {
         alert("Please enter your story outline.");
         return;
     }
-    autoSaveMovie();
-    localStorage.setItem("movieStage", "storyStudio");
-    alert("Story and screenplay saved successfully!");
+   localStorage.setItem(
+    "movieStage",
+    "storyStudio"
+);
+savedStage = "storyStudio";
+autoSaveMovie();
+alert("Story and screenplay saved successfully!");
 }
 function showFinalMoviePlan() {
     document.querySelector(".hero").innerHTML = `
@@ -1883,7 +2113,12 @@ function showFinalMoviePlan() {
 document
     .getElementById("newMovieBtn")
     .addEventListener("click", function() {
+        // Save the finished movie to the Library first.
+        autoSaveMovie();
+        // Create a separate, empty movie project.
         movieProject = {
+            id: "movie_" + Date.now() + "_" +
+                Math.random().toString(36).slice(2, 8),
             title: "",
             idea: "",
             genre: "",
@@ -1891,7 +2126,25 @@ document
             length: "",
             style: "",
             characters: [],
+            characterDraft: {
+                name: "",
+                role: "Main Protagonist",
+                age: "",
+                personality: "",
+                appearance: "",
+                description: ""
+            },
             scenes: [],
+            sceneDraft: {
+                title: "",
+                location: "",
+                time: "Morning",
+                characters: "",
+                action: "",
+                dialogue: "",
+                camera: ""
+            },
+            production: [],
             script: {
                 outline: "",
                 act1: "",
@@ -1900,32 +2153,14 @@ document
                 screenplay: ""
             }
         };
-        localStorage.removeItem("movieProject");
-        localStorage.removeItem("movieStage");
+        savedStage = "movieCreator";
+        localStorage.setItem(
+            "movieStage",
+            "movieCreator"
+        );
         localStorage.removeItem("movieSceneNumber");
+        // Save the new movie separately in the Library.
+        autoSaveMovie();
         showMovieCreator();
     });
-function resumeMovieProject() {
-    if (savedStage === "characterStudio") {
-        showCharacterStudio();
-    }
-    else if (savedStage === "sceneStudio") {
-        showSceneStudio();
-    }
-    else if (savedStage === "storyStudio") {
-        showStoryStudio();
-    }
-    else if (savedStage === "sceneProduction") {
-        const savedSceneNumber =
-            localStorage.getItem("movieSceneNumber");
-        if (savedSceneNumber) {
-            (
-                Number(savedSceneNumber)
-            );
-        }
-    }
-}
-if (savedMovieProject && savedStage !== "movieCreator") {
-    resumeMovieProject();
-}
 }
