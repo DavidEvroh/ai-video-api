@@ -25,9 +25,6 @@ app = FastAPI(
     description="Production-grade asynchronous multi-tenant AI video processing engine.",
     version="2.0.0"
 )
-# 🌐 FRONTEND MOUNTING LAYER
-frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
-app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 # 🔒 SECURITY LAYER
 def get_api_key(api_key: str = Depends(api_key_header)):
     if api_key == MASTER_API_KEY or os.getenv("ENVIRONMENT") == "marketplace":
@@ -146,3 +143,6 @@ async def paystack_webhook(request: Request):
         print(f"❌ Paystack Webhook Database Error: {str(e)}")
         return {"status": "error", "message": str(e)}
     return {"status": "ignored"}
+# 🌐 FRONTEND MOUNTING LAYER — keep this after all API routes
+frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
