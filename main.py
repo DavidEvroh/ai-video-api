@@ -1,5 +1,6 @@
 import os
 import replicate
+import httpx
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
@@ -33,6 +34,19 @@ def get_api_key(api_key: str = Depends(api_key_header)):
 class VideoRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "16:9"
+class ScreenplayRequest(BaseModel):
+    title: str = ""
+    idea: str = ""
+    genre: str = ""
+    movie_type: str = "Movie"
+    length: str = "Medium"
+    style: str = "Cinematic"
+    outline: str = ""
+    act1: str = ""
+    act2: str = ""
+    act3: str = ""
+    characters: list = []
+    scenes: list = []
 @app.get("/health", tags=["System"])
 def health_check():
     return {"status": "healthy", "database_connected": supabase is not None}
@@ -143,6 +157,85 @@ async def paystack_webhook(request: Request):
         print(f"❌ Paystack Webhook Database Error: {str(e)}")
         return {"status": "error", "message": str(e)}
     return {"status": "ignored"}
+
+class ScreenplayResponse(BaseModel):
+    screenplay: str
+
+@app.post("/v1/screenplay")
+async def generate_screenplay(request: ScreenplayRequest):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API key is not configured on the server."
+        )
+    prompt = f"""
+You are a professional screenwriter for MovieAI Studio.
+Create a detailed, coherent screenplay using the user's project details.
+Keep character identities and story continuity consistent.
+Return screenplay text only, with scene headings, action, and dialogue.
+Title: {request.title}
+Idea: {request.idea}
+Genre: {request.genre}
+Type: {request.movie_type}
+Length: {request.length}
+Visual style: {request.style}
+Story outline:
+{request.outline}
+Act 1:
+{request.act1}
+Act 2:
+{request.act2}
+Act 3:
+{request.act3}
+Characters:
+{request.characters}
+Existing scenes:
+{request.scenes}
+"""
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        "models/gemini-2.5-flash:generateContent"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            response = await client.post(
+                url,
+                params={"key": api_key},
+                json={
+                    "contents": [
+                        {"parts": [{"text": prompt}]}
+                    ]
+                },
+            )
+        if response.status_code >= 400:
+            print(f"Gemini API returned HTTP {response.status_code}")
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini could not generate the screenplay. Check the server logs."
+            )
+        data = response.json()
+        screenplay = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text", "")
+        )
+        if not screenplay:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini returned an empty screenplay."
+            )
+        return {"screenplay": screenplay}
+    except HTTPException:
+        raise
+    except Exception:
+        print("Gemini screenplay request failed.")
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to contact Gemini. Please try again."
+        )
 # 🌐 FRONTEND MOUNTING LAYER — keep this after all API routes
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
