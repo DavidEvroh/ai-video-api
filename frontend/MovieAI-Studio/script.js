@@ -1364,7 +1364,7 @@ document
 document
     .getElementById("saveStoryBtn")
     .addEventListener("click", saveStory);
-function generateAIScript() {
+async function generateAIScript() {
     const outline =
         document.getElementById("storyOutline").value.trim();
     const act1 =
@@ -1406,9 +1406,56 @@ function generateAIScript() {
             camera: "Cinematic final shot."
         };
     }
-    autoSaveMovie();
+autoSaveMovie();
     const scriptContainer =
         document.getElementById("generatedScript");
+    try {
+        const response = await fetch(
+            "https://ai-video-api-02om.onrender.com/v1/screenplay",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title: movieProject.title || "Untitled Movie",
+                    idea: movieProject.idea || outline,
+                    genre: movieProject.genre || "Drama",
+                    movie_type: movieProject.type || "Movie",
+                    length: movieProject.length || "Medium",
+                    style: movieProject.style || "Cinematic",
+                    outline: outline,
+                    act1: act1,
+                    act2: act2,
+                    act3: act3,
+                    characters: movieProject.characters || [],
+                    scenes: movieProject.scenes || []
+                })
+            }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                data.detail || data.error ||
+                "The AI screenplay request failed."
+            );
+        }
+        if (!data.screenplay) {
+            throw new Error("No screenplay was returned by the AI.");
+        }
+        movieProject.script.screenplay = data.screenplay;
+        const aiScreenplayText =
+    document.getElementById("aiScreenplayText");
+if (aiScreenplayText) {
+    aiScreenplayText.textContent = data.screenplay;
+}
+        autoSaveMovie();
+        alert("AI screenplay generated and saved successfully!");
+    } catch (error) {
+        console.error("AI screenplay generation failed:", error);
+        alert("AI screenplay generation failed: " + error.message);
+        return;
+    }
 const characters =
     movieProject.characters;
 const scenes =
@@ -1421,6 +1468,9 @@ const scenes =
                 <strong>Genre:</strong>
                 ${movieProject.genre}
             </p>
+<h4>📝 Complete AI Screenplay</h4>
+            <pre id="aiScreenplayText"
+                 style="white-space: pre-wrap;"></pre>
             <hr>
 <h4>SCENE 1 — ${scenes[0]?.title || "BEGINNING"}</h4>
 <p>
@@ -1511,6 +1561,12 @@ const scenes =
 
         </div>
     `;
+const aiScreenplayText =
+    document.getElementById("aiScreenplayText");
+if (aiScreenplayText) {
+    aiScreenplayText.textContent =
+        movieProject.script.screenplay || "";
+}
 }
 }
 function saveStory() {
