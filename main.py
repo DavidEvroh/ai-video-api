@@ -210,7 +210,7 @@ Existing scenes:
                 },
             )
         if response.status_code >= 400:
-            print(f"Gemini API returned HTTP {response.status_code}")
+            print(f"Gemini API returned HTTP {response.status_code}: {response.text}")
             raise HTTPException(
                 status_code=502,
                 detail="Gemini could not generate the screenplay. Check the server logs."
