@@ -1,4 +1,5 @@
 import os
+import asyncio
 import replicate
 import httpx
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
@@ -200,20 +201,38 @@ Existing scenes:
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
-            response = await client.post(
-                url,
-                params={"key": api_key},
-                json={
-                    "contents": [
-                        {"parts": [{"text": prompt}]}
-                    ]
-                },
-            )
+            response = None
+            for attempt in range(3):
+                response = await client.post(
+                    url,
+                    params={"key": api_key},
+                    json={
+                        "contents": [
+                            {"parts": [{"text": prompt}]}
+                        ]
+                    },
+                )
+                if response.status_code != 503:
+                    break
+                if attempt < 2:
+                    wait_seconds = 2 ** (attempt + 1)
+                    print(
+                        f"Gemini returned HTTP 503. "
+                        f"Retrying in {wait_seconds} seconds "
+                        f"(attempt {attempt + 2} of 3)."
+                    )
+                    await asyncio.sleep(wait_seconds)
         if response.status_code >= 400:
-            print(f"Gemini API returned HTTP {response.status_code}: {response.text}")
+            print(
+                f"Gemini API returned HTTP "
+                f"{response.status_code}: {response.text}"
+            )
             raise HTTPException(
                 status_code=502,
-                detail="Gemini could not generate the screenplay. Check the server logs."
+                detail=(
+                    "Gemini could not generate the screenplay. "
+                    "Check the server logs."
+                )
             )
         data = response.json()
         screenplay = (
