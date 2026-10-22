@@ -1364,6 +1364,29 @@ document
 document
     .getElementById("saveStoryBtn")
     .addEventListener("click", saveStory);
+// Restore saved scene buttons when returning to Story & Script Studio.
+if (movieProject.script.screenplay && movieProject.script.screenplay.trim() !== "") {
+    const scenes = movieProject.scenes || [];
+    const scriptContainer = document.getElementById("generatedScript");
+    scriptContainer.innerHTML = `
+        <div class="scene">
+            <h3>🤖 Saved AI-Generated Screenplay</h3>
+            <h4>🎬 ${movieProject.title || "Untitled Movie"}</h4>
+            <h4>SCENE 1 — ${scenes[0]?.title || "BEGINNING"}</h4>
+            <button onclick="generateMovieScene(1)">
+                🎬 Generate Movie Scene 1
+            </button>
+            <h4>SCENE 2 — ${scenes[1]?.title || "CONFLICT"}</h4>
+            <button onclick="generateMovieScene(2)">
+                🎬 Generate Movie Scene 2
+            </button>
+            <h4>SCENE 3 — ${scenes[2]?.title || "RESOLUTION"}</h4>
+            <button onclick="generateMovieScene(3)">
+                🎬 Generate Movie Scene 3
+            </button>
+        </div>
+    `;
+}
 async function generateAIScript() {
     const outline =
         document.getElementById("storyOutline").value.trim();
