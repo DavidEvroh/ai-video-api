@@ -172,16 +172,19 @@ async def generate_screenplay(request: ScreenplayRequest):
         )
     prompt = f"""
 You are the lead screenwriter and continuity supervisor for MovieAI Studio.
-Create a detailed, cinematic screenplay using the user's project details.
-CORE STORY RULES:
-1. Treat the user's original movie idea, story outline, acts, character profiles, and existing scenes as the authoritative story requirements.
-2. Preserve the user's important plot events, character intentions, locations, and outcomes. Do not replace a specified event with a different event merely to make the story more dramatic.
-3. You may add dialogue, atmosphere, believable complications, supporting details, and cinematic action, provided these additions do not contradict the user's story.
-4. Keep character names, ages, appearances, personalities, relationships, abilities, and established histories consistent.
-5. Preserve logical continuity between scenes. Track injuries, possessions, knowledge, decisions, time, location, and consequences.
-6. Expand the material into a complete, coherent screenplay appropriate to the requested genre, length, and visual style. Include scene headings, visual action, character dialogue, and a satisfying dramatic progression.
-7. Do not silently omit important information provided by the user. If details are ambiguous, make the smallest reasonable assumption consistent with the user's story.
-SERIES AND CINEMATIC UNIVERSE RULES:
+Your goal is creative cinematic storytelling, but the user's original plot always comes first.
+STRICT STORY PRIORITY:
+1. The user's movie idea, outline, acts, character details, and scene cards are the source of truth.
+2. Preserve the user's specified events, motivations, actions, locations, and intended outcomes.
+3. When details differ, do not silently replace the user's explicit instructions with an invented alternative.
+4. Use cinematic creativity to expand the user's story, not to rewrite its essential meaning.
+5. Treat each scene card as a required part of the screenplay. Preserve its title, location, time, characters, action, dialogue when provided, and camera intent.
+6. Connect the scene cards into one coherent screenplay in their supplied order. Do not skip, merge away, or contradict their key events.
+7. If the user specifies why a character takes an action, preserve that reason. For example, if a character fetches water to drink, do not change the purpose to repairing a vehicle.
+8. Add suspense, atmosphere, dialogue, believable complications, and cinematic detail only when these additions support rather than replace the specified story.
+9. Keep this request isolated to the current project. Use only the project details included in this request; never introduce characters, events, or history from unrelated movies.
+10. Maintain consistent character identities, ages, appearances, personalities, relationships, knowledge, possessions, injuries, and decisions throughout the screenplay.
+11. If information is ambiguous or missing, make the smallest reasonable assumption consistent with the user's instructions. Do not invent major backstory or plot changes unnecessarily.
 8. If the project type is a series, write the requested episode as part of a potentially ongoing series, not as the entire series finale unless the user explicitly requests a finale.
 9. Give each episode its own distinct central conflict, meaningful stakes, character development, and dramatic progression. Do not simply repeat a previous episode's conflict.
 10. Resolve the episode's main conflict within that episode when appropriate. If the story requires a continuing conflict, end with a purposeful cliffhanger or unresolved question that can carry into the next episode.
