@@ -171,28 +171,45 @@ async def generate_screenplay(request: ScreenplayRequest):
             detail="Gemini API key is not configured on the server."
         )
     prompt = f"""
-You are a professional screenwriter for MovieAI Studio.
-Create a detailed, coherent screenplay using the user's project details.
-Keep character identities and story continuity consistent.
-Return screenplay text only, with scene headings, action, and dialogue.
+You are the lead screenwriter and continuity supervisor for MovieAI Studio.
+Create a detailed, cinematic screenplay using the user's project details.
+CORE STORY RULES:
+1. Treat the user's original movie idea, story outline, acts, character profiles, and existing scenes as the authoritative story requirements.
+2. Preserve the user's important plot events, character intentions, locations, and outcomes. Do not replace a specified event with a different event merely to make the story more dramatic.
+3. You may add dialogue, atmosphere, believable complications, supporting details, and cinematic action, provided these additions do not contradict the user's story.
+4. Keep character names, ages, appearances, personalities, relationships, abilities, and established histories consistent.
+5. Preserve logical continuity between scenes. Track injuries, possessions, knowledge, decisions, time, location, and consequences.
+6. Expand the material into a complete, coherent screenplay appropriate to the requested genre, length, and visual style. Include scene headings, visual action, character dialogue, and a satisfying dramatic progression.
+7. Do not silently omit important information provided by the user. If details are ambiguous, make the smallest reasonable assumption consistent with the user's story.
+SERIES AND CINEMATIC UNIVERSE RULES:
+8. If the project type is a series, write the requested episode as part of a potentially ongoing series, not as the entire series finale unless the user explicitly requests a finale.
+9. Give each episode its own distinct central conflict, meaningful stakes, character development, and dramatic progression. Do not simply repeat a previous episode's conflict.
+10. Resolve the episode's main conflict within that episode when appropriate. If the story requires a continuing conflict, end with a purposeful cliffhanger or unresolved question that can carry into the next episode.
+11. Preserve unresolved conflicts and established story threads when prior episode summaries or series history are provided. Do not invent prior events that are absent from the supplied history.
+12. Build longer story arcs gradually across episodes and seasons, while allowing each episode to deliver meaningful progress.
+13. Do not declare the whole series complete merely because one episode or season has been written. Respect the user's chosen stopping point or finale instructions when provided.
+14. If season, episode, continuity history, or stopping instructions are not provided, do not pretend they were supplied. Write a coherent screenplay based on the available information.
+PROJECT DETAILS:
 Title: {request.title}
 Idea: {request.idea}
 Genre: {request.genre}
 Type: {request.movie_type}
 Length: {request.length}
 Visual style: {request.style}
-Story outline:
+USER'S STORY OUTLINE:
 {request.outline}
-Act 1:
+ACT 1 — BEGINNING:
 {request.act1}
-Act 2:
+ACT 2 — CONFLICT:
 {request.act2}
-Act 3:
+ACT 3 — RESOLUTION:
 {request.act3}
-Characters:
+ESTABLISHED CHARACTERS:
 {request.characters}
-Existing scenes:
+USER-DEFINED SCENES:
 {request.scenes}
+OUTPUT:
+Return screenplay text only. Use clear scene headings, cinematic action, and dialogue. Preserve the user's key story requirements and maintain continuity throughout.
 """
     url = (
         "https://generativelanguage.googleapis.com/v1beta/"

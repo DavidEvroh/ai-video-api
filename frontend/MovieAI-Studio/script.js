@@ -1557,8 +1557,6 @@ const scenes =
 <button onclick="generateMovieScene(3)">
     🎬 Generate Movie Scene 3
 </button>
-            </button>
-
         </div>
     `;
 const aiScreenplayText =
