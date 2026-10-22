@@ -216,9 +216,8 @@ Return screenplay text only. Use clear scene headings, cinematic action, and dia
 """
     url = (
         "https://generativelanguage.googleapis.com/v1beta/"
-       "models/gemini-3.7-flash:generateContent"
+        "models/gemini-3.8-flash:generateContent"
     )
-
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = None
