@@ -1446,6 +1446,7 @@ autoSaveMovie();
           method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`
                 },
                 body: JSON.stringify({
                     title: movieProject.title || "Untitled Movie",
