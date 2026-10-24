@@ -19,7 +19,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 else:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # --- Security Gate ---
-MASTER_API_KEY = os.getenv("MASTER_API_KEY", "super_secret_test_key_123")
+MASTER_API_KEY = os.getenv("MASTER_API_KEY")
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 app = FastAPI(
@@ -27,11 +27,19 @@ app = FastAPI(
     description="Production-grade asynchronous multi-tenant AI video processing engine.",
     version="2.0.0"
 )
-# 🔒 SECURITY LAYER
+# SECURITY LAYER
 def get_api_key(api_key: str = Depends(api_key_header)):
-    if api_key == MASTER_API_KEY or os.getenv("ENVIRONMENT") == "marketplace":
-        return api_key
-    raise HTTPException(status_code=401, detail="Unauthorized: Invalid API Key")
+    if not MASTER_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="API authentication is not configured."
+        )
+    if not api_key or api_key != MASTER_API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Invalid API Key"
+        )
+    return api_key
 class VideoRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "16:9"
@@ -158,12 +166,40 @@ async def paystack_webhook(request: Request):
         print(f"❌ Paystack Webhook Database Error: {str(e)}")
         return {"status": "error", "message": str(e)}
     return {"status": "ignored"}
-
 class ScreenplayResponse(BaseModel):
     screenplay: str
-
 @app.post("/v1/screenplay")
-async def generate_screenplay(request: ScreenplayRequest):
+async def generate_screenplay(
+    request: ScreenplayRequest,
+    http_request: Request
+):
+       # Require a valid Supabase login session.
+    auth_header = http_request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Please log in to generate a screenplay."
+        )
+    access_token = auth_header.removeprefix("Bearer ").strip()
+    if not supabase:
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service is not configured."
+        )
+    try:
+        auth_response = supabase.auth.get_user(access_token)
+        if not auth_response or not auth_response.user:
+            raise HTTPException(
+                status_code=401,
+                detail="Your login session is invalid or expired."
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Your login session is invalid or expired."
+        )
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(

@@ -1433,12 +1433,19 @@ autoSaveMovie();
     const scriptContainer =
         document.getElementById("generatedScript");
     try {
+       const { data: sessionData, error: sessionError } =
+            await movieSupabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (sessionError || !accessToken) {
+            alert("Please log in again before generating your screenplay.");
+            return;
+        }
         const response = await fetch(
             "https://ai-video-api-02om.onrender.com/v1/screenplay",
             {
-                method: "POST",
+          method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     title: movieProject.title || "Untitled Movie",
