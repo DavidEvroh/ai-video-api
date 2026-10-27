@@ -2,6 +2,9 @@ import os
 import asyncio
 import replicate
 import httpx
+import secrets
+import hmac
+import json
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +12,9 @@ from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
 from supabase import create_client, Client
+import base64
+import hashlib
+import time
 load_dotenv()
 # --- Cloud Database Configuration ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -20,6 +26,8 @@ else:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # --- Security Gate ---
 MASTER_API_KEY = os.getenv("MASTER_API_KEY")
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
+REPLICATE_WEBHOOK_SECRET = os.getenv("REPLICATE_WEBHOOK_SECRET")
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 app = FastAPI(
@@ -43,6 +51,9 @@ def get_api_key(api_key: str = Depends(api_key_header)):
 class VideoRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "16:9"
+class PaymentInitializeRequest(BaseModel):
+    package_code: str
+    package_version: int
 class ScreenplayRequest(BaseModel):
     title: str = ""
     idea: str = ""
@@ -110,62 +121,216 @@ async def get_video_status(task_id: str, api_key: str = Depends(get_api_key)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database Retrieval Failure: {str(e)}")
-
 @app.post("/v1/webhooks/replicate")
-async def replicate_webhook(body: dict): # <-- Changed this line to expect a dict body
+async def replicate_webhook(request: Request):
+    if not REPLICATE_WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=503,
+            detail="Replicate webhook verification is not configured."
+        )
+    webhook_id = request.headers.get("webhook-id", "")
+    webhook_timestamp = request.headers.get("webhook-timestamp", "")
+    webhook_signature = request.headers.get("webhook-signature", "")
+    if not webhook_id or not webhook_timestamp or not webhook_signature:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Replicate webhook signature headers."
+        )
     try:
-        # Remove or comment out: body = await request.json()
-        task_id = body.get("id")
-        status = body.get("status")
-        output = body.get("output")
-        print(f"📡 Webhook intercepted! Task ID: {task_id} | Status: {status}")
-        if not task_id:
-            return {"status": "ignored", "message": "No Task ID found in payload."}
+        timestamp = int(webhook_timestamp)
+    except ValueError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid webhook timestamp."
+        )
+    if abs(time.time() - timestamp) > 300:
+        raise HTTPException(
+            status_code=401,
+            detail="Webhook timestamp is outside the allowed window."
+        )
+    if not REPLICATE_WEBHOOK_SECRET.startswith("whsec_"):
+        raise HTTPException(
+            status_code=503,
+            detail="Replicate webhook signing secret is invalid."
+        )
+    try:
+        signing_key = base64.b64decode(
+            REPLICATE_WEBHOOK_SECRET.removeprefix("whsec_"),
+            validate=True
+        )
+        raw_body = await request.body()
+        signed_content = (
+            webhook_id.encode("utf-8")
+            + b"."
+            + webhook_timestamp.encode("utf-8")
+            + b"."
+            + raw_body
+        )
+        expected_signature = base64.b64encode(
+            hmac.new(
+                signing_key,
+                signed_content,
+                hashlib.sha256
+            ).digest()
+        ).decode("utf-8")
+        signature_valid = any(
+            version == "v1"
+            and hmac.compare_digest(
+                supplied_signature,
+                expected_signature
+            )
+            for item in webhook_signature.split()
+            for version, separator, supplied_signature
+            in [item.partition(",")]
+            if separator
+        )
+        if not signature_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Replicate webhook signature."
+            )
+        body = json.loads(raw_body)
+    except HTTPException:
+        raise
+    except (ValueError, UnicodeDecodeError, TypeError):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Replicate webhook payload."
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not verify Replicate webhook."
+        )
+    task_id = body.get("id")
+    status = body.get("status")
+    output = body.get("output")
+    if not isinstance(task_id, str) or not task_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Webhook payload is missing a valid task ID."
+        )
+    if status == "succeeded":
+        db_status = "completed"
+        final_video_url = None
+        if isinstance(output, list) and output:
+            final_video_url = output[0] if isinstance(output[0], str) else None
+        elif isinstance(output, str):
+            final_video_url = output
+        if not final_video_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Completed prediction did not contain a video URL."
+            )
+    elif status in ("failed", "canceled"):
+        db_status = "failed"
+        final_video_url = None
+    elif status in ("starting", "processing"):
         db_status = "processing"
         final_video_url = None
-        if status == "succeeded":
-            db_status = "completed"
-            if isinstance(output, list) and len(output) > 0:
-                final_video_url = output[0]
-            elif isinstance(output, str):
-                final_video_url = output
-        elif status in ["failed", "canceled"]:
-            db_status = "failed"
-        if supabase:
-            supabase.table("video_tasks").update({
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported Replicate prediction status."
+        )
+    if not supabase:
+        raise HTTPException(
+            status_code=503,
+            detail="Database is not configured."
+        )
+    try:
+        update_result = (
+            supabase.table("video_tasks")
+            .update({
                 "status": db_status,
                 "video_url": final_video_url
-            }).eq("task_id", task_id).execute()
-            print(f"💾 Cloud database updated successfully for Task: {task_id}")
-        return {"status": "success", "message": "Webhook processed cleanly."}
-    except Exception as e:
-        print(f"❌ Webhook parsing failure: {str(e)}")
-        return {"status": "error", "message": str(e)}
-        
-@app.post("/webhook")
-async def paystack_webhook(request: Request):
-    try:
-        data = await request.json()
-        if data.get("event") == "charge.success":
-            customer_email = data["data"]["customer"]["email"]
-            amount_paid = data["data"]["amount"] / 100 # Convert kobo back to Naira
-            print(f"💰 PAYMENT VERIFIED! {customer_email} successfully paid ₦{amount_paid}.")
-            # 🚀 DATABASE SYNCHRONIZATION: Update your user data table
-            user_record = supabase.table("profiles").select("credits").eq("email", customer_email).execute()
-            if user_record.data:
-                # Fixed to parse the array object properly
-                current_credits = user_record.data[0].get("credits", 0)
-                new_credits = current_credits + 10 # Award 10 video generation credits per payment
-                supabase.table("profiles").update({"credits": new_credits}).eq("email", customer_email).execute()
-                print(f"💳 CREDITS UPDATED! Added 10 credits to {customer_email}. Total: {new_credits}")
-            else:
-                print(f"⚠️ User record not found for {customer_email}. Creating new entry...")
-                supabase.table("profiles").insert({"email": customer_email, "credits": 10}).execute()
-            return {"status": "success", "message": "Credits successfully provisioned"}    
-    except Exception as e:
-        print(f"❌ Paystack Webhook Database Error: {str(e)}")
-        return {"status": "error", "message": str(e)}
-    return {"status": "ignored"}
+            })
+            .eq("task_id", task_id)
+            .eq("status", "processing")
+            .select("task_id, status")
+            .execute()
+        )
+        if not update_result.data:
+            existing_result = (
+                supabase.table("video_tasks")
+                .select("task_id, status")
+                .eq("task_id", task_id)
+                .limit(1)
+                .execute()
+            )
+            # Replicate may deliver the webhook before the task row
+            # finishes being inserted. Briefly wait for the row.
+            if not existing_result.data:
+                for attempt in range(3):
+                    await asyncio.sleep(0.5 * (attempt + 1))
+                    existing_result = (
+                        supabase.table("video_tasks")
+                        .select("task_id, status")
+                        .eq("task_id", task_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    if existing_result.data:
+                        break
+            if not existing_result.data:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Video task not found; webhook may be retried."
+                )
+            existing_status = existing_result.data[0].get("status")
+            # A duplicate or delayed event must not overwrite a
+            # task that has already reached a terminal status.
+            if existing_status in ("completed", "failed"):
+                return {"status": "success"}
+            # The task may have appeared during the retry window.
+            # Retry the conditional update while it is processing.
+            if existing_status == "processing":
+                retry_update_result = (
+                    supabase.table("video_tasks")
+                    .update({
+                        "status": db_status,
+                        "video_url": final_video_url
+                    })
+                    .eq("task_id", task_id)
+                    .eq("status", "processing")
+                    .select("task_id, status")
+                    .execute()
+                )
+                if retry_update_result.data:
+                    return {"status": "success"}
+                # Another webhook may have completed it concurrently.
+                latest_result = (
+                    supabase.table("video_tasks")
+                    .select("task_id, status")
+                    .eq("task_id", task_id)
+                    .limit(1)
+                    .execute()
+                )
+                if latest_result.data:
+                    latest_status = latest_result.data[0].get("status")
+                    if latest_status in ("completed", "failed"):
+                        return {"status": "success"}
+            raise HTTPException(
+                status_code=503,
+                detail="Video task update should be retried."
+            )
+            existing_status = existing_result.data[0].get("status")
+            if existing_status in ("completed", "failed"):
+                return {"status": "success"}
+            raise HTTPException(
+                status_code=503,
+                detail="Video task update should be retried."
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        print("Replicate webhook database update failed.")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not update video task."
+        )
+
+    return {"status": "success"}
 class ScreenplayResponse(BaseModel):
     screenplay: str
 @app.post("/v1/screenplay")
@@ -309,6 +474,128 @@ Return screenplay text only. Use clear scene headings, cinematic action, and dia
         raise HTTPException(
             status_code=502,
             detail="Unable to contact Gemini. Please try again."
+        )
+@app.post("/webhook")
+async def paystack_webhook(request: Request):
+    if not PAYSTACK_SECRET_KEY or not supabase:
+        raise HTTPException(
+            status_code=503,
+            detail="Payment verification is not configured."
+        )
+    raw_body = await request.body()
+    signature = request.headers.get("x-paystack-signature", "")
+    expected_signature = hmac.new(
+        PAYSTACK_SECRET_KEY.encode("utf-8"),
+        raw_body,
+        digestmod="sha512"
+    ).hexdigest()
+    if not signature or not hmac.compare_digest(
+        signature, expected_signature
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Paystack webhook signature."
+        )
+    try:
+        event = json.loads(raw_body)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid webhook JSON."
+        )
+    if not isinstance(event, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid webhook payload."
+        )
+    if event.get("event") != "charge.success":
+        return {"status": "ignored"}
+    data = event.get("data")
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid transaction payload."
+        )
+    reference = data.get("reference")
+    if not isinstance(reference, str) or not reference:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing payment reference."
+        )
+    from urllib.parse import quote
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                "https://api.paystack.co/transaction/verify/"
+                + quote(reference, safe=""),
+                headers={
+                    "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"
+                }
+            )
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=502,
+                detail="Could not verify payment with Paystack."
+            )
+        try:
+            verification = response.json()
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=502,
+                detail="Paystack returned an invalid verification response."
+            )
+        if not isinstance(verification, dict):
+            raise HTTPException(
+                status_code=502,
+                detail="Paystack returned an invalid verification response."
+            )
+        verified_data = verification.get("data")
+        if not isinstance(verified_data, dict):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid verified transaction data."
+            )
+        if (
+            not verification.get("status")
+            or verified_data.get("status") != "success"
+            or verified_data.get("reference") != reference
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Paystack transaction is not successful."
+            )
+        amount_minor = verified_data.get("amount")
+        currency = verified_data.get("currency")
+        if (
+            not isinstance(amount_minor, int)
+            or isinstance(amount_minor, bool)
+            or amount_minor <= 0
+            or not isinstance(currency, str)
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid verified payment details."
+            )
+        result = supabase.rpc(
+            "award_verified_payment",
+            {
+                "p_reference": reference,
+                "p_amount_minor": amount_minor,
+                "p_currency": currency
+            }
+        ).execute()
+        return {
+            "status": "success",
+            "payment": result.data
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        print("Paystack verification or credit processing failed.")
+        raise HTTPException(
+            status_code=500,
+            detail="Payment processing failed; retry safely."
         )
 # 🌐 FRONTEND MOUNTING LAYER — keep this after all API routes
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
