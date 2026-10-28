@@ -83,6 +83,12 @@ async def create_video_task(request: VideoRequest, api_key: str = Depends(get_ap
             input={
                 "prompt": request.prompt,
                 "aspect_ratio": request.aspect_ratio.strip(),
+                "fast_mode": "Balanced",
+                "lora_scale": 1,
+                "sample_shift": 5,
+                "sample_steps": 30,
+                "negative_prompt": "",
+                "sample_guide_scale": 5,
             },
             webhook=f"{public_server_url}/v1/webhooks/replicate",
             webhook_events_filter=["completed"]
