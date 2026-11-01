@@ -2035,16 +2035,276 @@ autoSaveMovie();
 </button>
 <button id="saveProjectBtn">
     💾 Save Project
-</button> 
+</button>
+ <div id="videoGenerationResult" aria-live="polite"></div>
                 </div>
    `;
-        document
-            .getElementById("generateVideoBtn")
-            .addEventListener("click", function() {
-                alert(
-                    "🎥 AI Video Generation is ready for this scene."
-                );
+ document
+    .getElementById("generateVideoBtn")
+    .addEventListener("click", async function() {
+        const button = this;
+        const result = document.getElementById(
+            "videoGenerationResult"
+        );
+        const production = movieProject.production.find(
+            item => item.sceneNumber === sceneNumber
+        );
+        if (!production) {
+            alert("Please prepare the scene before generating a video.");
+            return;
+        }
+        if (Number(production.duration) !== 5) {
+            alert("This video model currently supports 5-second videos only.");
+            return;
+        }
+        function showVideo(videoUrl) {
+            result.replaceChildren();
+            const heading = document.createElement("h3");
+            heading.textContent = "✅ Your video is ready!";
+            result.appendChild(heading);
+            const video = document.createElement("video");
+            video.src = videoUrl;
+            video.controls = true;
+            video.playsInline = true;
+            video.preload = "metadata";
+            video.style.width = "100%";
+            video.style.maxWidth = "720px";
+            video.style.display = "block";
+            result.appendChild(video);
+            const link = document.createElement("a");
+            link.href = videoUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Open video in a new tab";
+            result.appendChild(link);
+        }
+        function showRetry(taskId) {
+            result.replaceChildren();
+            const message = document.createElement("p");
+            message.textContent =
+                "The previous task has failed. You can deliberately " +
+                "start a new generation after confirming.";
+            result.appendChild(message);
+            const retryButton = document.createElement("button");
+            retryButton.textContent = "Generate a New Video";
+            retryButton.addEventListener("click", function() {
+                if (!confirm(
+                    "The previous task is confirmed failed. Start a new " +
+                    "video generation? This may use video credits."
+                )) {
+                    return;
+                }
+                production.previousFailedTaskId = taskId;
+                production.videoRequestId = crypto.randomUUID();
+                autoSaveMovie();
+                button.disabled = false;
+                button.textContent = "🎥 Generate AI Video";
+                result.textContent =
+                    "A new request is ready. Select Generate AI Video " +
+                    "to start it.";
             });
+            result.appendChild(retryButton);
+        }
+        if (!production.videoRequestId) {
+            production.videoRequestId = crypto.randomUUID();
+            autoSaveMovie();
+        }
+        const requestId = production.videoRequestId;
+        const scenePrompt = [
+            `Movie: ${movieProject.title || "Untitled Movie"}`,
+            `Scene: ${production.sceneTitle || scene.title || ""}`,
+            production.characterPrompt
+                ? `Character: ${production.characterPrompt}` : "",
+            production.visualPrompt
+                ? `Visuals and action: ${production.visualPrompt}` : "",
+            production.cameraPrompt
+                ? `Camera: ${production.cameraPrompt}` : "",
+            production.dialoguePrompt
+                ? `Dialogue: ${production.dialoguePrompt}` : "",
+            production.audioPrompt
+                ? `Audio: ${production.audioPrompt}` : ""
+        ].filter(Boolean).join("\n");
+        button.disabled = true;
+        button.textContent = "⏳ Checking video request...";
+        result.textContent = "Checking the existing video request.";
+        // Until the server confirms the outcome, assume the request
+        // may exist. Never generate a new ID automatically.
+        let requestMayExist = true;
+        try {
+            const {
+                data: sessionData,
+                error: sessionError
+            } = await movieSupabase.auth.getSession();
+            const accessToken = sessionData.session?.access_token;
+            if (sessionError || !accessToken) {
+                requestMayExist = false;
+                throw new Error(
+                    "Please log in again before generating your video."
+                );
+            }
+            const response = await fetch(
+                "https://ai-video-api-02om.onrender.com/v1/videos",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        prompt: scenePrompt,
+                        aspect_ratio: "16:9",
+                        duration: 5,
+                        request_id: requestId
+                    })
+                }
+            );
+            let data;
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(
+                    "The server response could not be confirmed. " +
+                    "Do not start another generation."
+                );
+            }
+            if (!response.ok) {
+                // The server may have received the request even if it
+                // returned an error. Keep the same request ID protected
+                // unless we can establish it was rejected before submission.
+                if (
+                    [400, 401, 403, 422].includes(response.status) &&
+                    data.detail
+                ) {
+                    requestMayExist = false;
+                }
+                throw new Error(
+                    data.detail || data.error ||
+                    "The server could not confirm the request outcome. " +
+                    "Do not submit a new generation."
+                );
+            }
+            if (!data.task_id) {
+                throw new Error(
+                    "No task ID was returned. The request outcome is uncertain."
+                );
+            }
+            const taskId = data.task_id;
+            if (
+                data.request_state === "uncertain" ||
+                data.status === "uncertain"
+            ) {
+                result.textContent =
+                    "The request outcome is uncertain. Do not submit " +
+                    "another generation. Keep this request ID and have " +
+                    "the existing task checked.";
+                button.textContent = "⏳ Request Needs Review";
+                return;
+            }
+            const statusUrl =
+                "https://ai-video-api-02om.onrender.com/v1/videos/" +
+                encodeURIComponent(taskId);
+            // FIX 1: Display an already-completed task immediately
+            // if the POST response includes its saved video URL.
+            if (data.status === "completed" && data.video_url) {
+                showVideo(data.video_url);
+                button.textContent = "🎥 Video Generated";
+                production.videoRequestId = null;
+                autoSaveMovie();
+                requestMayExist = false;
+                return;
+            }
+            // For completed responses without a URL, retrieve the
+            // saved task status below to obtain the URL.
+            if (data.status === "failed") {
+                // FIX 2: Offer a deliberate retry only after failure
+                // has been confirmed by the server.
+                button.textContent = "Video Generation Failed";
+                showRetry(taskId);
+                return;
+            }
+            button.textContent = "⏳ Generating video...";
+            result.textContent =
+                "Checking the existing task. Please keep this page open.";
+            const maxWaitMs = 5 * 60 * 1000;
+            const pollIntervalMs = 3000;
+            const startTime = Date.now();
+            while (Date.now() - startTime < maxWaitMs) {
+                const statusResponse = await fetch(statusUrl, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${accessToken}`
+                    }
+                });
+                let statusData;
+                try {
+                    statusData = await statusResponse.json();
+                } catch {
+                    throw new Error(
+                        "Could not confirm the task status. Do not " +
+                        "start another generation."
+                    );
+                }
+                if (!statusResponse.ok) {
+                    throw new Error(
+                        statusData.detail ||
+                        "Could not retrieve the video status."
+                    );
+                }
+                if (statusData.status === "completed") {
+                    if (!statusData.video_url) {
+                        throw new Error(
+                            "The task is completed, but no video URL is available."
+                        );
+                    }
+                    showVideo(statusData.video_url);
+                    button.textContent = "🎥 Video Generated";
+                    production.videoRequestId = null;
+                    autoSaveMovie();
+                    requestMayExist = false;
+                    return;
+                }
+                if (statusData.status === "failed") {
+                    button.textContent = "Video Generation Failed";
+                    showRetry(taskId);
+                    return;
+                }
+                if (statusData.request_state === "uncertain") {
+                    result.textContent =
+                        "This task needs review. Do not submit another " +
+                        "generation.";
+                    button.textContent = "⏳ Request Needs Review";
+                    return;
+                }
+                if (statusData.status !== "processing") {
+                    throw new Error(
+                        "Unexpected task status: " +
+                        String(statusData.status)
+                    );
+                }
+                result.textContent =
+                    "Your video is still generating. Task ID: " + taskId;
+                await new Promise(resolve =>
+                    setTimeout(resolve, pollIntervalMs)
+                );
+            }
+            throw new Error(
+                "The task is taking longer than expected. It may still " +
+                "be running. Check its status before trying again."
+            );
+        } catch (error) {
+            console.error("AI video generation failed:", error);
+            result.textContent =
+                "Video generation: " + error.message;
+            alert("AI video generation: " + error.message);
+            if (requestMayExist) {
+                button.textContent = "⏳ Request Needs Review";
+            } else {
+                button.textContent = "🎥 Generate AI Video";
+            }
+        } finally {
+            button.disabled = requestMayExist;
+        }
+    });
 document
     .getElementById("saveProjectBtn")
     .addEventListener("click", function() {

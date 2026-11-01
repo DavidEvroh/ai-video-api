@@ -8,7 +8,7 @@ import json
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -48,9 +48,49 @@ def get_api_key(api_key: str = Depends(api_key_header)):
             detail="Unauthorized: Invalid API Key"
         )
     return api_key
+def get_authenticated_user(request: Request):
+    auth_header = request.headers.get("Authorization", "")
+
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Please log in again before generating a video."
+        )
+    access_token = auth_header.removeprefix("Bearer ").strip()
+    if not supabase:
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service is not configured."
+        )
+    try:
+        auth_response = supabase.auth.get_user(access_token)
+        if not auth_response or not auth_response.user:
+            raise HTTPException(
+                status_code=401,
+                detail="Your login session is invalid or expired."
+            )
+        return auth_response.user
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Your login session is invalid or expired."
+        )
 class VideoRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "16:9"
+    duration: int = 5
+    request_id: str
+    @field_validator("request_id")
+    @classmethod
+    def validate_request_id(cls, value: str) -> str:
+        import uuid
+        try:
+            uuid.UUID(value)
+        except (ValueError, TypeError, AttributeError):
+            raise ValueError("Request ID must be a valid UUID.")
+        return value
 class PaymentInitializeRequest(BaseModel):
     package_code: str
     package_version: int
@@ -71,18 +111,115 @@ class ScreenplayRequest(BaseModel):
 def health_check():
     return {"status": "healthy", "database_connected": supabase is not None}
 @app.post("/v1/videos")
-async def create_video_task(request: VideoRequest, api_key: str = Depends(get_api_key)):
+async def create_video_task(
+    request: VideoRequest,
+    current_user=Depends(get_authenticated_user)
+):
+    import uuid
+    if request.duration != 5:
+        raise HTTPException(
+            status_code=400,
+            detail="This video model is currently configured for 5-second videos only."
+        )
+    if not supabase:
+        raise HTTPException(
+            status_code=503,
+            detail="Database Engine offline."
+        )
+    public_server_url = os.getenv("PUBLIC_SERVER_URL", "").rstrip("/")
+    if not public_server_url:
+        raise HTTPException(
+            status_code=500,
+            detail="PUBLIC_SERVER_URL is missing in configuration."
+        )
+    user_id = str(current_user.id)
+    request_id = str(request.request_id)
+    aspect_ratio = request.aspect_ratio.strip()
     try:
-        # Ensure our target public routing link is clean
-        public_server_url = os.getenv("PUBLIC_SERVER_URL", "").rstrip("/")
-        if not public_server_url:
-            raise HTTPException(status_code=500, detail="PUBLIC_SERVER_URL is missing in configuration")
-        # 1. Fire the request directly to Replicate with pristine formatting
+        # Reuse an existing task for duplicate requests.
+        existing = (
+            supabase.table("video_tasks")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("request_id", request_id)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            task = existing.data[0]
+            return {
+                "status": task.get("status", "processing"),
+                "task_id": task["task_id"],
+                "request_state": task.get("request_state", "uncertain"),
+                "video_url": task.get("video_url"),
+                "check_status_url": f"/v1/videos/{task['task_id']}",
+                "message": (
+                    "This request already exists. "
+                    "No additional video generation was started."
+                )
+            }
+        # Register the request before contacting Replicate.
+        internal_task_id = str(uuid.uuid4())
+        # Create a private recovery token for the webhook.
+        webhook_correlation_token = secrets.token_urlsafe(32)
+        webhook_token_hash = hashlib.sha256(
+            webhook_correlation_token.encode("utf-8")
+        ).hexdigest()
+        supabase.table("video_tasks").insert({
+            "task_id": internal_task_id,
+            "user_id": user_id,
+            "request_id": request_id,
+            "request_state": "submitting",
+            "status": "processing",
+            "prompt": request.prompt,
+            "aspect_ratio": aspect_ratio,
+            "video_url": None,
+            "replicate_prediction_id": None,
+            "webhook_token_hash": webhook_token_hash
+        }).execute()
+    except Exception:
+        # A simultaneous request may have inserted the same request ID.
+        # Look it up again before deciding that registration failed.
+        try:
+            existing = (
+                supabase.table("video_tasks")
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("request_id", request_id)
+                .limit(1)
+                .execute()
+            )
+            if existing.data:
+                task = existing.data[0]
+                return {
+                    "status": task.get("status", "processing"),
+                    "task_id": task["task_id"],
+                    "request_state": task.get("request_state", "uncertain"),
+                    "video_url": task.get("video_url"),
+                    "check_status_url": f"/v1/videos/{task['task_id']}",
+                    "message": (
+                        "This request already exists. "
+                        "No additional video generation was started."
+                    )
+                }
+        except Exception:
+            print("Could not verify an existing video request.")
+        print("Could not safely register the video request in Supabase.")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The video request could not be registered or verified. "
+                "No new generation was started. Keep the same request ID "
+                "and check the existing task before retrying."
+            )
+        )
+    try:
         prediction = replicate.predictions.create(
             model="wavespeedai/wan-2.1-t2v-480p",
             input={
                 "prompt": request.prompt,
-                "aspect_ratio": request.aspect_ratio.strip(),
+                "aspect_ratio": aspect_ratio,
+                "num_frames": 81,
                 "fast_mode": "Balanced",
                 "lora_scale": 1,
                 "sample_shift": 5,
@@ -90,42 +227,140 @@ async def create_video_task(request: VideoRequest, api_key: str = Depends(get_ap
                 "negative_prompt": "",
                 "sample_guide_scale": 5,
             },
-            webhook=f"{public_server_url}/v1/webhooks/replicate",
-            webhook_events_filter=["completed"]
+            webhook=(
+    f"{public_server_url}/v1/webhooks/replicate"
+    f"?correlation_token={webhook_correlation_token}"
+),
+webhook_events_filter=["completed"]
         )
-        # 2. Log the task cleanly inside your secure Supabase cloud table
-        if supabase:
-            supabase.table("video_tasks").insert({
-                "task_id": prediction.id,
-                "status": "processing",
-                "prompt": request.prompt,
-                "aspect_ratio": request.aspect_ratio.strip(),
-                "video_url": None
-            }).execute()
-        # 3. Return the success payload back to your client script
-        return {
-            "status": "queued",
-            "task_id": prediction.id,
-            "check_status_url": f"/v1/videos/{prediction.id}",
-            "message": "AI generation job started successfully."
-        }
     except Exception as e:
-        print(f"Error starting task: {str(e)}")
-
-        raise HTTPException(status_code=500, detail=f"Engine Deployment Failure: {str(e)}")
+        # The provider may have accepted the request before a network
+        # error occurred. Never automatically submit it a second time.
+        print(
+            "Replicate submission outcome uncertain for internal task "
+            f"{internal_task_id}: {type(e).__name__}"
+        )
+        try:
+            (
+                supabase.table("video_tasks")
+                .update({"request_state": "uncertain"})
+                .eq("task_id", internal_task_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+        except Exception:
+            print("Could not update the uncertain video request state.")
+        return {
+            "status": "uncertain",
+            "task_id": internal_task_id,
+            "request_state": "uncertain",
+            "check_status_url": f"/v1/videos/{internal_task_id}",
+            "message": (
+                "The provider's response could not be confirmed. "
+                "Do not submit a new request; check this task first."
+            )
+        }
+   # Replicate has accepted the prediction.
+    # Retry ONLY the database update. Never submit another prediction.
+    tracking_saved = False
+    for attempt in range(5):
+        try:
+            supabase.table("video_tasks").update({
+                "replicate_prediction_id": prediction.id,
+                "request_state": "submitted"
+            }).eq(
+                "task_id", internal_task_id
+            ).eq(
+                "user_id", user_id
+            ).execute()
+            # Verify that the prediction ID was actually saved.
+            verification = (
+                supabase.table("video_tasks")
+                .select("task_id, replicate_prediction_id")
+                .eq("task_id", internal_task_id)
+                .eq("user_id", user_id)
+                .limit(1)
+                .execute()
+            )
+            if (
+                verification.data
+                and verification.data[0].get("replicate_prediction_id")
+                == prediction.id
+            ):
+                tracking_saved = True
+                break
+        except Exception as e:
+            print(
+                "Prediction tracking update attempt "
+                f"{attempt + 1} failed: {type(e).__name__}"
+            )
+        if attempt < 4:
+            await asyncio.sleep(1 + attempt)
+    if not tracking_saved:
+        print(
+            "Replicate accepted prediction "
+            f"{prediction.id}, but tracking could not be confirmed "
+            f"for internal task {internal_task_id}."
+        )
+        try:
+            (
+                supabase.table("video_tasks")
+                .update({"request_state": "uncertain"})
+                .eq("task_id", internal_task_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+        except Exception:
+            print("Could not mark the video task as uncertain.")
+        return {
+            "status": "uncertain",
+            "task_id": internal_task_id,
+            "request_state": "uncertain",
+            "check_status_url": f"/v1/videos/{internal_task_id}",
+            "message": (
+                "Replicate may already be generating this video, "
+                "but its tracking record could not be confirmed. "
+                "Do not submit another generation."
+            )
+        }
+    return {
+        "status": "queued",
+        "task_id": internal_task_id,
+        "request_state": "submitted",
+        "check_status_url": f"/v1/videos/{internal_task_id}",
+        "message": "AI generation job started successfully."
+    }
 @app.get("/v1/videos/{task_id}")
-async def get_video_status(task_id: str, api_key: str = Depends(get_api_key)):
+async def get_video_status(
+    task_id: str,
+    current_user=Depends(get_authenticated_user)
+):
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database Engine offline.")
+        raise HTTPException(
+            status_code=500,
+            detail="Database Engine offline."
+        )
     try:
-        result = supabase.table("video_tasks").select("*").eq("task_id", task_id).execute()
+        result = (
+            supabase.table("video_tasks")
+            .select("*")
+            .eq("task_id", task_id)
+            .eq("user_id", str(current_user.id))
+            .execute()
+        )
         if not result.data:
-            raise HTTPException(status_code=404, detail="Requested video task not found.")
+            raise HTTPException(
+                status_code=404,
+                detail="Requested video task not found."
+            )
         return result.data[0]
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database Retrieval Failure: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database Retrieval Failure: {str(e)}"
+        )
 @app.post("/v1/webhooks/replicate")
 async def replicate_webhook(request: Request):
     if not REPLICATE_WEBHOOK_SECRET:
@@ -207,19 +442,32 @@ async def replicate_webhook(request: Request):
             status_code=400,
             detail="Could not verify Replicate webhook."
         )
-    task_id = body.get("id")
+    prediction_id = body.get("id")
+   # Read the separate private recovery token from the webhook URL.
+    correlation_token = request.query_params.get(
+        "correlation_token", ""
+    )
+    correlation_token_hash = (
+        hashlib.sha256(
+            correlation_token.encode("utf-8")
+        ).hexdigest()
+        if correlation_token
+        else None
+    )
     status = body.get("status")
     output = body.get("output")
-    if not isinstance(task_id, str) or not task_id:
+    if not isinstance(prediction_id, str) or not prediction_id:
         raise HTTPException(
             status_code=400,
-            detail="Webhook payload is missing a valid task ID."
+            detail="Webhook payload is missing a valid prediction ID."
         )
     if status == "succeeded":
         db_status = "completed"
         final_video_url = None
         if isinstance(output, list) and output:
-            final_video_url = output[0] if isinstance(output[0], str) else None
+            final_video_url = (
+                output[0] if isinstance(output[0], str) else None
+            )
         elif isinstance(output, str):
             final_video_url = output
         if not final_video_url:
@@ -244,97 +492,136 @@ async def replicate_webhook(request: Request):
             detail="Database is not configured."
         )
     try:
+       # First try to find the task using Replicate's prediction ID.
+        existing_result = (
+            supabase.table("video_tasks")
+            .select(
+                "task_id, status, replicate_prediction_id"
+            )
+            .eq("replicate_prediction_id", prediction_id)
+            .limit(1)
+            .execute()
+        )
+        # If the prediction ID is not linked yet, recover using
+        # the private correlation-token hash.
+        if not existing_result or not existing_result.data:
+            if not correlation_token_hash:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "Prediction is not linked and no recovery "
+                        "token was supplied. Retry webhook."
+                    )
+                )
+            recovery_result = (
+                supabase.table("video_tasks")
+                .select(
+                    "task_id, status, replicate_prediction_id"
+                )
+                .eq("webhook_token_hash", correlation_token_hash)
+                .limit(1)
+                .execute()
+            )
+            if not recovery_result.data:
+                raise HTTPException(
+                    status_code=503,
+                    detail="No task matches the webhook recovery token."
+                )
+            recovery_task = recovery_result.data[0]
+            internal_task_id = recovery_task["task_id"]
+            linked_prediction_id = recovery_task.get(
+                "replicate_prediction_id"
+            )
+            # Never attach a different prediction to this task.
+            if (
+                linked_prediction_id
+                and linked_prediction_id != prediction_id
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Task is already linked to another prediction."
+                )
+            # Attach the prediction ID only if it is still unlinked.
+            if not linked_prediction_id:
+                (
+                    supabase.table("video_tasks")
+                    .update({
+                        "replicate_prediction_id": prediction_id,
+                        "request_state": "submitted"
+                    })
+                    .eq("task_id", internal_task_id)
+                    .eq("webhook_token_hash", correlation_token_hash)
+                    .is_("replicate_prediction_id", "null")
+                    .execute()
+                )
+            # Verify the link before processing the callback.
+            existing_result = (
+                supabase.table("video_tasks")
+                .select(
+                    "task_id, status, replicate_prediction_id"
+                )
+                .eq("task_id", internal_task_id)
+                .limit(1)
+                .execute()
+            )
+            if (
+                not existing_result.data
+                or existing_result.data[0].get(
+                    "replicate_prediction_id"
+                ) != prediction_id
+            ):
+                raise HTTPException(
+                    status_code=503,
+                    detail="Could not verify recovered prediction link."
+                )
+        existing_task = existing_result.data[0]
+        internal_task_id = existing_task["task_id"]
+        existing_status = existing_task.get("status")
+        # Do not let duplicate or delayed callbacks overwrite
+        # a completed or failed task.
+        if existing_status in ("completed", "failed"):
+            return {"status": "success"}
         update_result = (
             supabase.table("video_tasks")
             .update({
                 "status": db_status,
                 "video_url": final_video_url
             })
-            .eq("task_id", task_id)
+            .eq("task_id", internal_task_id)
+            .eq("replicate_prediction_id", prediction_id)
             .eq("status", "processing")
             .select("task_id, status")
             .execute()
         )
-        if not update_result.data:
-            existing_result = (
-                supabase.table("video_tasks")
-                .select("task_id, status")
-                .eq("task_id", task_id)
-                .limit(1)
-                .execute()
-            )
-            # Replicate may deliver the webhook before the task row
-            # finishes being inserted. Briefly wait for the row.
-            if not existing_result.data:
-                for attempt in range(3):
-                    await asyncio.sleep(0.5 * (attempt + 1))
-                    existing_result = (
-                        supabase.table("video_tasks")
-                        .select("task_id, status")
-                        .eq("task_id", task_id)
-                        .limit(1)
-                        .execute()
-                    )
-                    if existing_result.data:
-                        break
-            if not existing_result.data:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Video task not found; webhook may be retried."
-                )
-            existing_status = existing_result.data[0].get("status")
-            # A duplicate or delayed event must not overwrite a
-            # task that has already reached a terminal status.
-            if existing_status in ("completed", "failed"):
+        if update_result.data:
+            return {"status": "success"}
+        # Another callback may have updated the task concurrently.
+        latest_result = (
+            supabase.table("video_tasks")
+            .select("task_id, status")
+            .eq("replicate_prediction_id", prediction_id)
+            .limit(1)
+            .execute()
+        )
+        if latest_result.data:
+            latest_status = latest_result.data[0].get("status")
+            if latest_status in ("completed", "failed"):
                 return {"status": "success"}
-            # The task may have appeared during the retry window.
-            # Retry the conditional update while it is processing.
-            if existing_status == "processing":
-                retry_update_result = (
-                    supabase.table("video_tasks")
-                    .update({
-                        "status": db_status,
-                        "video_url": final_video_url
-                    })
-                    .eq("task_id", task_id)
-                    .eq("status", "processing")
-                    .select("task_id, status")
-                    .execute()
-                )
-                if retry_update_result.data:
-                    return {"status": "success"}
-                # Another webhook may have completed it concurrently.
-                latest_result = (
-                    supabase.table("video_tasks")
-                    .select("task_id, status")
-                    .eq("task_id", task_id)
-                    .limit(1)
-                    .execute()
-                )
-                if latest_result.data:
-                    latest_status = latest_result.data[0].get("status")
-                    if latest_status in ("completed", "failed"):
-                        return {"status": "success"}
-            raise HTTPException(
-                status_code=503,
-                detail="Video task update should be retried."
-            )
-            existing_status = existing_result.data[0].get("status")
-            if existing_status in ("completed", "failed"):
+
+            if latest_status == db_status == "processing":
                 return {"status": "success"}
-            raise HTTPException(
-                status_code=503,
-                detail="Video task update should be retried."
-            )
+        raise HTTPException(
+            status_code=503,
+            detail="Video task update should be retried."
+        )
     except HTTPException:
         raise
     except Exception:
         print("Replicate webhook database update failed.")
         raise HTTPException(
-            status_code=500,
-            detail="Could not update video task."
+            status_code=503,
+            detail="Could not update video task; webhook should be retried."
         )
-
     return {"status": "success"}
 class ScreenplayResponse(BaseModel):
     screenplay: str
