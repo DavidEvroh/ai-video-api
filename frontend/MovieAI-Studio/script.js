@@ -112,42 +112,118 @@ function showMovieLibrary() {
             const title = document.createElement("h3");
             title.textContent =
                 project.title || "Untitled Movie";
-            const idea = document.createElement("p");
+           const idea = document.createElement("p");
             idea.textContent =
                 project.idea || "No movie description yet.";
+            // Display the movie's production information.
+            const stageNames = {
+                movieCreator: "Movie Setup",
+                characterStudio: "Character Development",
+                sceneStudio: "Scene Development",
+                storyStudio: "Story & Screenplay",
+                sceneProduction: "Scene Production"
+            };
+            const movieMeta = document.createElement("div");
+            movieMeta.className = "movie-library-meta";
+            const details = [
+                "Genre: " + (project.genre || "Not set"),
+                "Format: " + (project.type || "Not set"),
+                "Duration: " + (project.length || "Not set"),
+                "Stage: " +
+                    (stageNames[project.stage] || "Movie Setup")
+            ];
+            details.forEach(function(detail) {
+                const item = document.createElement("span");
+                item.textContent = detail;
+                movieMeta.appendChild(item);
+            });
+            // Show the project's current workflow position.
+            const stageProgress = {
+                movieCreator: 1,
+                characterStudio: 2,
+                sceneStudio: 3,
+                storyStudio: 4,
+                sceneProduction: 5
+            };
+            const currentProgress =
+                stageProgress[project.stage] || 1;
+            const progressSection =
+                document.createElement("div");
+            progressSection.className =
+                "movie-library-progress";
+            const progressHeading =
+                document.createElement("div");
+            progressHeading.className =
+                "movie-library-progress-heading";
+            const progressLabel =
+                document.createElement("span");
+            progressLabel.textContent = "Workflow Progress";
+            const progressValue =
+                document.createElement("span");
+            progressValue.textContent =
+            Math.round(currentProgress / 5 * 100) + "%";
+            progressHeading.appendChild(progressLabel);
+            progressHeading.appendChild(progressValue);
+            const progressTrack =
+                document.createElement("div");
+            progressTrack.className =
+                "movie-library-progress-track";
+            const progressFill =
+                document.createElement("div");
+            progressFill.className =
+                "movie-library-progress-fill";
+            progressFill.style.width =
+                (currentProgress / 5 * 100) + "%";
+            progressTrack.appendChild(progressFill);
+            progressSection.appendChild(progressHeading);
+            progressSection.appendChild(progressTrack);
+            // Display the last saved date.
+            const updated = document.createElement("p");
+            updated.className = "movie-library-updated";
+            const updatedDate = project.lastUpdated
+                ? new Date(project.lastUpdated)
+                : null;
+            updated.textContent =
+                updatedDate && !isNaN(updatedDate.getTime())
+                    ? "Last updated: " +
+                        updatedDate.toLocaleDateString()
+                    : "Not updated yet.";
             const openButton = document.createElement("button");
             openButton.textContent = "▶️ Open Movie";
-openButton.addEventListener("click", function() {
-    // Load the selected movie.
-    movieProject = project;
-    // Restore this movie's saved stage.
-    savedStage = project.stage || "movieCreator";
-    localStorage.setItem(
-        "movieStage",
-        savedStage
-    );
-    // Restore this movie's saved scene number.
-    if (project.sceneNumber) {
-        localStorage.setItem(
-            "movieSceneNumber",
-            String(project.sceneNumber)
-        );
-    } else {
-        localStorage.removeItem("movieSceneNumber");
-    }
-    // Mark this movie as the active project.
-    localStorage.setItem(
-        "activeMovieProjectId",
-        project.id
-    );
-    localStorage.setItem(
-        "movieProject",
-        JSON.stringify(movieProject)
-    );
-    showResumeChoice();
-});
+            openButton.addEventListener("click", function() {
+                // Load the selected movie.
+                movieProject = project;
+                // Restore this movie's saved stage.
+                savedStage = project.stage || "movieCreator";
+                localStorage.setItem(
+                    "movieStage",
+                    savedStage
+                );
+                // Restore this movie's saved scene number.
+                if (project.sceneNumber) {
+                    localStorage.setItem(
+                        "movieSceneNumber",
+                        String(project.sceneNumber)
+                    );
+                } else {
+                    localStorage.removeItem("movieSceneNumber");
+                }
+                // Mark this movie as the active project.
+                localStorage.setItem(
+                    "activeMovieProjectId",
+                    project.id
+                );
+                localStorage.setItem(
+                    "movieProject",
+                    JSON.stringify(movieProject)
+                );
+                showResumeChoice();
+            });
             card.appendChild(title);
             card.appendChild(idea);
+            card.appendChild(movieMeta);
+            card.appendChild(progressSection);
+            card.appendChild(updated);
             card.appendChild(openButton);
             libraryList.appendChild(card);
         });
